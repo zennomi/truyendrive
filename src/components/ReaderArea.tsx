@@ -9,12 +9,13 @@ import {
 import type { ReaderSettings } from '../useSettings';
 
 interface ReaderAreaProps {
-  activeGroupIndex: number;
   displayGroups: ReaderGroup[];
   goToAdjacentGroup: (delta: number) => void;
   groupRefs: RefObject<Array<HTMLDivElement | null>>;
   hoverEdge: 'next' | 'prev' | null;
   imageWrapRef: RefObject<HTMLDivElement | null>;
+  isGroupPreloaded: (index: number) => boolean;
+  onPageLoad: (pageId: string) => void;
   performVerticalPageTurn: (direction: 1 | -1) => void;
   preloadImageRefs: RefObject<Array<HTMLImageElement | null>>;
   setHoverEdge: (edge: 'next' | 'prev' | null) => void;
@@ -42,12 +43,13 @@ function createIdlePointerGestureState(): PointerGestureState {
 }
 
 export function ReaderArea({
-  activeGroupIndex,
   displayGroups,
   goToAdjacentGroup,
   groupRefs,
   hoverEdge,
   imageWrapRef,
+  isGroupPreloaded,
+  onPageLoad,
   performVerticalPageTurn,
   preloadImageRefs,
   setHoverEdge,
@@ -265,13 +267,9 @@ export function ReaderArea({
                 alt={`Page ${page.index + 1}`}
                 decoding="async"
                 key={page.id}
-                loading={
-                  Math.abs(groupIndex - activeGroupIndex) <=
-                  settings.bhv.preload
-                    ? 'eager'
-                    : 'lazy'
-                }
+                loading={isGroupPreloaded(groupIndex) ? 'eager' : 'lazy'}
                 onLoad={() => {
+                  onPageLoad(page.id);
                   setImageLoadVersion((version) => version + 1);
                 }}
                 src={getImageUrl(page.id)}

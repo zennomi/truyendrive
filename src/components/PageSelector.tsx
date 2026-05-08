@@ -5,8 +5,8 @@ interface PageSelectorProps {
   activePageNumber: number;
   displayGroups: ReaderGroup[];
   imageIds: string[];
+  isGroupLoaded: (index: number) => boolean;
   isSelectorVisible: boolean;
-  preloadDistance: number;
   scrollToGroup: (index: number, behavior?: ScrollBehavior) => void;
 }
 
@@ -15,8 +15,8 @@ export function PageSelector({
   activePageNumber,
   displayGroups,
   imageIds,
+  isGroupLoaded,
   isSelectorVisible,
-  preloadDistance,
   scrollToGroup,
 }: PageSelectorProps) {
   return (
@@ -29,9 +29,7 @@ export function PageSelector({
           <div
             className={[
               index === activeGroupIndex ? 'shown' : '',
-              Math.abs(index - activeGroupIndex) <= preloadDistance
-                ? 'preloaded'
-                : '',
+              isGroupLoaded(index) ? 'preloaded' : '',
             ]
               .filter(Boolean)
               .join(' ')}

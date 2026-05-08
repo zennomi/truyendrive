@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef } from 'react';
 
 import { getImageUrl, type ReaderGroup } from '../lib/readerUtils';
 
@@ -7,6 +7,12 @@ interface UseReaderPreloadParams {
   displayGroups: ReaderGroup[];
   isOpen: boolean;
   preloadDistance: number;
+}
+
+function getMaxPreloadDistance(preloadDistance: number, groupCount: number) {
+  return preloadDistance === 100
+    ? groupCount
+    : Math.max(preloadDistance, 1);
 }
 
 export function useReaderPreload({
@@ -27,16 +33,26 @@ export function useReaderPreload({
     });
   });
 
+  const isGroupPreloaded = useCallback(
+    (index: number) =>
+      index >= 0 &&
+      index < displayGroups.length &&
+      index <=
+        activeGroupIndex +
+          getMaxPreloadDistance(preloadDistance, displayGroups.length),
+    [activeGroupIndex, preloadDistance, displayGroups.length],
+  );
+
   useEffect(() => {
     if (!isOpen || displayGroups.length === 0) {
       resetPreloadState();
       return;
     }
 
-    const maxDistance =
-      preloadDistance === 100
-        ? displayGroups.length
-        : Math.max(preloadDistance, 1);
+    const maxDistance = getMaxPreloadDistance(
+      preloadDistance,
+      displayGroups.length,
+    );
     const preloadUrls: string[] = [];
 
     for (let distance = 1; distance <= maxDistance; distance += 1) {
@@ -85,5 +101,5 @@ export function useReaderPreload({
     resetPreloadState,
   ]);
 
-  return { preloadImageRefs };
+  return { isGroupPreloaded, preloadImageRefs };
 }

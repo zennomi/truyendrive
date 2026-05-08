@@ -1,5 +1,12 @@
 import type { CSSProperties } from 'react';
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { PageSelector } from './components/PageSelector';
 import { ReaderArea } from './components/ReaderArea';
@@ -37,6 +44,7 @@ function App() {
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
   const [imageLoadVersion, setImageLoadVersion] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [loadedPageIds, setLoadedPageIds] = useState<Set<string>>(() => new Set());
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('Reader');
   const [tooWideGroups, setTooWideGroups] = useState<Record<string, true>>({});
   const imageWrapRef = useRef<HTMLDivElement | null>(null);
@@ -85,6 +93,7 @@ function App() {
     setActiveGroupIndex(0);
     setImageLoadVersion(0);
     setIsSettingsOpen(false);
+    setLoadedPageIds(new Set());
     setTooWideGroups({});
   });
 
@@ -157,12 +166,32 @@ function App() {
     settings,
   });
 
-  const { preloadImageRefs } = useReaderPreload({
+  const { isGroupPreloaded, preloadImageRefs } = useReaderPreload({
     activeGroupIndex,
     displayGroups,
     isOpen,
     preloadDistance: settings.bhv.preload,
   });
+
+  const handlePageLoad = useCallback((pageId: string) => {
+    setLoadedPageIds((current) => {
+      if (current.has(pageId)) {
+        return current;
+      }
+
+      const next = new Set(current);
+      next.add(pageId);
+      return next;
+    });
+  }, []);
+
+  const isGroupLoaded = useCallback(
+    (index: number) => {
+      const group = displayGroups[index];
+      return group ? group.pages.every((page) => loadedPageIds.has(page.id)) : false;
+    },
+    [displayGroups, loadedPageIds],
+  );
 
   const syncWideGroupState = useEffectEvent(() => {
     if (
@@ -425,18 +454,19 @@ function App() {
             activePageNumber={activePageNumber}
             displayGroups={displayGroups}
             imageIds={imageIds}
+            isGroupLoaded={isGroupLoaded}
             isSelectorVisible={isSelectorVisible}
-            preloadDistance={settings.bhv.preload}
             scrollToGroup={scrollToGroup}
           />
 
           <ReaderArea
-            activeGroupIndex={activeGroupIndex}
             displayGroups={displayGroups}
             goToAdjacentGroup={goToAdjacentGroup}
             groupRefs={groupRefs}
             hoverEdge={hoverEdge}
             imageWrapRef={imageWrapRef}
+            isGroupPreloaded={isGroupPreloaded}
+            onPageLoad={handlePageLoad}
             performVerticalPageTurn={performVerticalPageTurn}
             preloadImageRefs={preloadImageRefs}
             setHoverEdge={setHoverEdge}
