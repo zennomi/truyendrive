@@ -1,15 +1,27 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import readerStyles from './reader.css?inline';
+import shadowStyles from './index.css?inline';
+import fontStyles from './font.css?inline';
 
-ReactDOM.createRoot(
-  (() => {
-    const app = document.createElement('div');
-    document.body.append(app);
-    return app;
-  })(),
-).render(
+// 1. Extract and inject the font-face globally into the document <head>
+const globalStyle = document.createElement('style');
+globalStyle.textContent = fontStyles;
+document.head.appendChild(globalStyle);
+
+const host = document.createElement('div');
+host.id = 'truyendrive-reader-host';
+document.body.append(host);
+
+const shadowRoot = host.attachShadow({ mode: 'open' });
+const mountNode = document.createElement('div');
+shadowRoot.append(mountNode);
+
+ReactDOM.createRoot(mountNode).render(
   <React.StrictMode>
+    <style>{readerStyles}</style>
+    <style>{shadowStyles}</style>
     <App />
   </React.StrictMode>,
 );
