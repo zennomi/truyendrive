@@ -1507,7 +1507,6 @@ _:-webkit-full-screen:not(:root:root),
 .fit-width .zoom-level,
 .fit-width_limit .zoom-level {
   display: block;
-  animation: zoomFlash 3s;
 }
 
 @keyframes zoomFlash {

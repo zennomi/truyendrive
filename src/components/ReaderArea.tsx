@@ -21,9 +21,13 @@ interface ReaderAreaProps {
   setImageLoadVersion: (fn: (version: number) => number) => void;
   settings: ReaderSettings;
   showPageSelector: () => void;
+  showZoomControls: () => void;
   syncActiveGroupFromScroll: () => void;
   tooWideGroups: Record<string, true>;
 }
+
+const SELECTOR_PROXIMITY_PX = 72;
+const ZOOM_PROXIMITY_PX = 140;
 
 function createIdlePointerGestureState(): PointerGestureState {
   return {
@@ -50,6 +54,7 @@ export function ReaderArea({
   setImageLoadVersion,
   settings,
   showPageSelector,
+  showZoomControls,
   syncActiveGroupFromScroll,
   tooWideGroups,
 }: ReaderAreaProps) {
@@ -101,13 +106,33 @@ export function ReaderArea({
       }}
       onMouseLeave={() => setHoverEdge(null)}
       onMouseMove={(event) => {
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const offsetX = event.clientX - bounds.left;
+        const offsetY = event.clientY - bounds.top;
+
+        const isNearSelector =
+          settings.apr.selectorAnchor === 'bottom'
+            ? offsetY >= bounds.height - SELECTOR_PROXIMITY_PX
+            : offsetX <= SELECTOR_PROXIMITY_PX;
+
+        if (isNearSelector) {
+          showPageSelector();
+        }
+
+        const isNearZoomControls =
+          offsetX >= bounds.width - ZOOM_PROXIMITY_PX &&
+          offsetY <= ZOOM_PROXIMITY_PX;
+
+        if (isNearZoomControls) {
+          showZoomControls();
+        }
+
         if (!settings.apr.hoverinos || settings.lyt.direction === 'ttb') {
           setHoverEdge(null);
           return;
         }
 
-        const bounds = event.currentTarget.getBoundingClientRect();
-        const ratio = (event.clientX - bounds.left) / bounds.width;
+        const ratio = offsetX / bounds.width;
         if (ratio < 0.25) {
           setHoverEdge('prev');
         } else if (ratio > 0.75) {

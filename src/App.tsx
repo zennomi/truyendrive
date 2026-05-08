@@ -348,28 +348,6 @@ function App() {
       return;
     }
 
-    showPageSelector();
-  }, [activeGroupIndex, isOpen, settings.apr.selPinned, showPageSelector]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    showZoomControls();
-  }, [
-    activeGroupIndex,
-    isOpen,
-    settings.lyt.fit,
-    settings.lyt.zoom,
-    showZoomControls,
-  ]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
     const frame = window.requestAnimationFrame(() => {
       syncWideGroupState();
     });
@@ -465,6 +443,7 @@ function App() {
             setImageLoadVersion={setImageLoadVersion}
             settings={settings}
             showPageSelector={showPageSelector}
+            showZoomControls={showZoomControls}
             syncActiveGroupFromScroll={syncActiveGroupFromScroll}
             tooWideGroups={tooWideGroups}
           />
