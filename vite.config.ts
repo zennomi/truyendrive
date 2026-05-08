@@ -9,9 +9,13 @@ export default defineConfig({
     monkey({
       entry: 'src/main.tsx',
       userscript: {
+        name: 'Google Drive Comic Reader',
+        namespace: 'http://tampermonkey.net/',
+        version: '1.0',
+        description: 'Displays images in a Google Drive folder as a long strip comic reader',
+        author: 'Gemini',
+        match: ['https://drive.google.com/drive/*'],
         icon: 'https://vitejs.dev/logo.svg',
-        namespace: 'npm/vite-plugin-monkey',
-        match: ['https://www.google.com/'],
       },
     }),
   ],
