@@ -5,14 +5,27 @@ function App() {
   const [imageIds, setImageIds] = useState<string[]>([]);
 
   const openComicMode = () => {
-    // Find all grid cells that have a data-id
-    const items = document.querySelectorAll('div[data-id][role="gridcell"]');
+    const displayModeDiv = document.querySelector('div[data-display-mode]');
+    const displayMode = displayModeDiv?.getAttribute('data-display-mode');
+
+    console.log('Display mode', displayMode);
+
+    let items;
+    if (displayMode === '1') {
+      items = document.querySelectorAll('tr[data-id][role="row"]');
+    } else {
+      items = document.querySelectorAll('div[data-id][role="gridcell"]');
+    }
+
     const ids: string[] = [];
 
     items.forEach((item) => {
       // Ensure it's an image by checking the aria-label or the icon path
-      const label = item.getAttribute('aria-label') || '';
-      const isImage = label.toLowerCase().match(/\.(jpg|jpeg|png|webp|gif|bmp|heic)/);
+      const labelEle = item.querySelector('div[aria-label]');
+      const label = labelEle?.getAttribute('aria-label') || '';
+      const isImage = label
+        .toLowerCase()
+        .match(/\.(jpg|jpeg|png|webp|gif|bmp|heic)/);
       const id = item.getAttribute('data-id');
 
       if (id && isImage && !ids.includes(id)) {
@@ -21,7 +34,7 @@ function App() {
     });
 
     if (ids.length === 0) {
-      alert('No images detected on screen. Make sure you are in Grid View and images are loaded.');
+      alert('No images detected on screen. Make sure images are loaded.');
       return;
     }
 
@@ -92,7 +105,7 @@ function App() {
           >
             ✕ Close Reader
           </button>
-          
+
           {imageIds.map((id) => (
             <img
               key={id}
