@@ -1,0 +1,276 @@
+import { useRef, type RefObject } from 'react';
+
+import {
+  clampIndex,
+  getImageUrl,
+  type PointerGestureState,
+  type ReaderGroup,
+} from '../lib/readerUtils';
+import type { ReaderSettings } from '../useSettings';
+
+interface ReaderAreaProps {
+  activeGroupIndex: number;
+  displayGroups: ReaderGroup[];
+  goToAdjacentGroup: (delta: number) => void;
+  groupRefs: RefObject<Array<HTMLDivElement | null>>;
+  hoverEdge: 'next' | 'prev' | null;
+  imageWrapRef: RefObject<HTMLDivElement | null>;
+  performVerticalPageTurn: (direction: 1 | -1) => void;
+  preloadImageRefs: RefObject<Array<HTMLImageElement | null>>;
+  setHoverEdge: (edge: 'next' | 'prev' | null) => void;
+  setImageLoadVersion: (fn: (version: number) => number) => void;
+  settings: ReaderSettings;
+  showPageSelector: () => void;
+  syncActiveGroupFromScroll: () => void;
+  tooWideGroups: Record<string, true>;
+}
+
+function createIdlePointerGestureState(): PointerGestureState {
+  return {
+    active: false,
+    dragged: false,
+    initialScrollLeft: 0,
+    pointerType: '',
+    startX: 0,
+    startY: 0,
+    wrapper: null,
+  };
+}
+
+export function ReaderArea({
+  activeGroupIndex,
+  displayGroups,
+  goToAdjacentGroup,
+  groupRefs,
+  hoverEdge,
+  imageWrapRef,
+  performVerticalPageTurn,
+  preloadImageRefs,
+  setHoverEdge,
+  setImageLoadVersion,
+  settings,
+  showPageSelector,
+  syncActiveGroupFromScroll,
+  tooWideGroups,
+}: ReaderAreaProps) {
+  const pointerGestureRef = useRef<PointerGestureState>(
+    createIdlePointerGestureState(),
+  );
+  const suppressClickRef = useRef(false);
+
+  return (
+    <div
+      className="rdr-area"
+      onClick={(event) => {
+        if (suppressClickRef.current) {
+          suppressClickRef.current = false;
+          return;
+        }
+
+        if (!settings.bhv.clickTurnPage) {
+          return;
+        }
+
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const ratio = (event.clientX - bounds.left) / bounds.width;
+
+        if (settings.lyt.direction === 'ttb') {
+          const verticalRatio = (event.clientY - bounds.top) / bounds.height;
+
+          if (verticalRatio < 0.35) {
+            performVerticalPageTurn(-1);
+            return;
+          }
+
+          if (verticalRatio > 0.65) {
+            performVerticalPageTurn(1);
+            return;
+          }
+
+          showPageSelector();
+          return;
+        }
+
+        if (ratio < 0.35) {
+          goToAdjacentGroup(settings.lyt.direction === 'rtl' ? 1 : -1);
+        } else if (ratio > 0.65) {
+          goToAdjacentGroup(settings.lyt.direction === 'rtl' ? -1 : 1);
+        } else {
+          showPageSelector();
+        }
+      }}
+      onMouseLeave={() => setHoverEdge(null)}
+      onMouseMove={(event) => {
+        if (!settings.apr.hoverinos || settings.lyt.direction === 'ttb') {
+          setHoverEdge(null);
+          return;
+        }
+
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const ratio = (event.clientX - bounds.left) / bounds.width;
+        if (ratio < 0.25) {
+          setHoverEdge('prev');
+        } else if (ratio > 0.75) {
+          setHoverEdge('next');
+        } else {
+          setHoverEdge(null);
+        }
+      }}
+    >
+      <div className="preload-entity">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <img
+            key={index}
+            ref={(element) => {
+              preloadImageRefs.current[index] = element;
+            }}
+          />
+        ))}
+      </div>
+      <div
+        className="rdr-image-wrap"
+        onPointerCancel={() => {
+          pointerGestureRef.current = createIdlePointerGestureState();
+        }}
+        onPointerDown={(event) => {
+          const wrapper =
+            event.target instanceof Element
+              ? (event.target.closest(
+                  '.ReaderImageWrapper',
+                ) as HTMLDivElement | null)
+              : null;
+
+          pointerGestureRef.current = {
+            active: true,
+            dragged: false,
+            initialScrollLeft: wrapper?.scrollLeft ?? 0,
+            pointerType: event.pointerType,
+            startX: event.clientX,
+            startY: event.clientY,
+            wrapper,
+          };
+          suppressClickRef.current = false;
+        }}
+        onPointerMove={(event) => {
+          const gesture = pointerGestureRef.current;
+          if (!gesture.active) {
+            return;
+          }
+
+          const deltaX = event.clientX - gesture.startX;
+          const deltaY = event.clientY - gesture.startY;
+          if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
+            gesture.dragged = true;
+            suppressClickRef.current = true;
+          }
+
+          if (
+            settings.lyt.direction === 'ttb' ||
+            !settings.bhv.swipeGestures ||
+            !gesture.wrapper ||
+            Math.abs(deltaX) <= Math.abs(deltaY)
+          ) {
+            return;
+          }
+
+          const maxScrollLeft =
+            gesture.wrapper.scrollWidth - gesture.wrapper.clientWidth;
+          if (maxScrollLeft <= 0) {
+            return;
+          }
+
+          gesture.wrapper.scrollLeft = clampIndex(
+            gesture.initialScrollLeft - deltaX,
+            maxScrollLeft,
+          );
+        }}
+        onPointerUp={(event) => {
+          const gesture = pointerGestureRef.current;
+          pointerGestureRef.current = createIdlePointerGestureState();
+
+          if (
+            settings.lyt.direction === 'ttb' ||
+            !settings.bhv.swipeGestures ||
+            (gesture.pointerType !== 'touch' && gesture.pointerType !== 'pen')
+          ) {
+            return;
+          }
+
+          const deltaX = event.clientX - gesture.startX;
+          const deltaY = event.clientY - gesture.startY;
+          const horizontalSwipe =
+            Math.abs(deltaX) >= 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2;
+          if (!horizontalSwipe) {
+            return;
+          }
+
+          const wrapper = gesture.wrapper;
+          if (wrapper) {
+            const maxScrollLeft = wrapper.scrollWidth - wrapper.clientWidth;
+            if (maxScrollLeft > 0) {
+              const atStart = wrapper.scrollLeft <= 1;
+              const atEnd = maxScrollLeft - wrapper.scrollLeft <= 1;
+              if ((deltaX < 0 && !atEnd) || (deltaX > 0 && !atStart)) {
+                return;
+              }
+            }
+          }
+
+          if (deltaX < 0) {
+            goToAdjacentGroup(settings.lyt.direction === 'rtl' ? -1 : 1);
+            return;
+          }
+
+          goToAdjacentGroup(settings.lyt.direction === 'rtl' ? 1 : -1);
+        }}
+        onScroll={syncActiveGroupFromScroll}
+        ref={imageWrapRef}
+        tabIndex={-1}
+      >
+        {displayGroups.map((group, groupIndex) => (
+          <div
+            className={`ReaderImageWrapper UI${group.pages.length > 1 ? ' two-page' : ''}${tooWideGroups[group.id] ? ' too-wide' : ''}`}
+            key={group.id}
+            ref={(element) => {
+              groupRefs.current[groupIndex] = element;
+            }}
+          >
+            {group.pages.map((page) => (
+              <img
+                alt={`Page ${page.index + 1}`}
+                decoding="async"
+                key={page.id}
+                loading={
+                  Math.abs(groupIndex - activeGroupIndex) <=
+                  settings.bhv.preload
+                    ? 'eager'
+                    : 'lazy'
+                }
+                onLoad={() => {
+                  setImageLoadVersion((version) => version + 1);
+                }}
+                src={getImageUrl(page.id)}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div
+        className={`hover-prev${hoverEdge === 'prev' ? ' viz nodelay' : ''}`}
+      >
+        <div className="hover-wrap">
+          <div className="hover-arrow"></div>
+          <div className="hover-sub" />
+        </div>
+      </div>
+      <div
+        className={`hover-next${hoverEdge === 'next' ? ' viz nodelay' : ''}`}
+      >
+        <div className="hover-wrap">
+          <div className="hover-arrow"></div>
+          <div className="hover-sub" />
+        </div>
+      </div>
+    </div>
+  );
+}
