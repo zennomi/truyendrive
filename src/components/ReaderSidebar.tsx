@@ -1,5 +1,11 @@
 import type { Chapter, FolderMode } from '../hooks/useComicMode';
 import {
+  memo,
+  useCallback,
+  type ChangeEvent,
+  type MouseEvent,
+} from 'react';
+import {
   DIRECTION_OPTIONS,
   FIT_OPTIONS,
   PRELOAD_OPTIONS,
@@ -55,7 +61,7 @@ interface ReaderSidebarProps {
   toggleSetting: ToggleSetting;
 }
 
-export function ReaderSidebar({
+export const ReaderSidebar = memo(function ReaderSidebar({
   activeGroup,
   activeGroupIndex,
   activeChapterIndex,
@@ -91,6 +97,134 @@ export function ReaderSidebar({
       ? pageLabel(activeGroup)
       : '0';
 
+  const handleToggleSidebar = useCallback(() => {
+    toggleSetting('apr', 'sidebar');
+  }, [toggleSetting]);
+
+  const handleClose = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault();
+      closeComicMode();
+    },
+    [closeComicMode],
+  );
+
+  const handlePreventDefault = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault();
+    },
+    [],
+  );
+
+  const handleJumpToStart = useCallback(() => {
+    scrollToGroup(0);
+  }, [scrollToGroup]);
+
+  const handleOpenSettings = useCallback(() => {
+    setSettingsTab('Reader');
+    setIsSettingsOpen(true);
+  }, [setIsSettingsOpen, setSettingsTab]);
+
+  const handlePrevChapter = useCallback(() => {
+    if (isAtFirstGroup && hasAdjacentChapters) {
+      goToAdjacentChapter(-1);
+      return;
+    }
+
+    goToAdjacentGroup(-1);
+  }, [
+    goToAdjacentChapter,
+    goToAdjacentGroup,
+    hasAdjacentChapters,
+    isAtFirstGroup,
+  ]);
+
+  const handleNextChapter = useCallback(() => {
+    if (isAtLastGroup && hasAdjacentChapters) {
+      goToAdjacentChapter(1);
+      return;
+    }
+
+    goToAdjacentGroup(1);
+  }, [
+    goToAdjacentChapter,
+    goToAdjacentGroup,
+    hasAdjacentChapters,
+    isAtLastGroup,
+  ]);
+
+  const handleChapterSelectChange = useCallback(
+    (event: ChangeEvent<HTMLSelectElement>) => {
+      const nextIndex = Number.parseInt(event.target.value, 10);
+      if (Number.isNaN(nextIndex)) {
+        return;
+      }
+
+      if (isImagesMode) {
+        if (parentChapters.length > 0) {
+          goToChapterAtIndex(nextIndex);
+        }
+        return;
+      }
+
+      scrollToGroup(nextIndex);
+    },
+    [
+      goToChapterAtIndex,
+      isImagesMode,
+      parentChapters.length,
+      scrollToGroup,
+    ],
+  );
+
+  const handlePageSelectChange = useCallback(
+    (event: ChangeEvent<HTMLSelectElement>) => {
+      const targetPage = Number.parseInt(event.target.value, 10);
+      const targetGroupIndex = findGroupIndexForPage(displayGroups, targetPage);
+      if (targetGroupIndex !== -1) {
+        scrollToGroup(targetGroupIndex);
+      }
+    },
+    [displayGroups, scrollToGroup],
+  );
+
+  const handleCyclePreload = useCallback(() => {
+    cycleSetting('bhv', 'preload', PRELOAD_OPTIONS);
+  }, [cycleSetting]);
+
+  const handleCycleFit = useCallback(() => {
+    cycleSetting('lyt', 'fit', FIT_OPTIONS);
+  }, [cycleSetting]);
+
+  const handleCycleDirection = useCallback(() => {
+    cycleSetting('lyt', 'direction', DIRECTION_OPTIONS);
+  }, [cycleSetting]);
+
+  const handleCycleSpread = useCallback(() => {
+    cycleSetting('lyt', 'spread', SPREAD_OPTIONS);
+  }, [cycleSetting]);
+
+  const handleTogglePinned = useCallback(() => {
+    toggleSetting('apr', 'selPinned');
+  }, [toggleSetting]);
+
+  const handleTogglePreviews = useCallback(() => {
+    toggleSetting('apr', 'previews');
+  }, [toggleSetting]);
+
+  const handlePreviewClick = useCallback(
+    (event: MouseEvent<HTMLImageElement>) => {
+      const groupIndex = Number.parseInt(
+        event.currentTarget.dataset.groupIndex ?? '',
+        10,
+      );
+      if (!Number.isNaN(groupIndex)) {
+        scrollToGroup(groupIndex);
+      }
+    },
+    [scrollToGroup],
+  );
+
   return (
     <aside className="">
       <div
@@ -98,7 +232,7 @@ export function ReaderSidebar({
         data-tip="Show/hide sidebar [S]"
         data-tip-align="right"
         {...{ 'data-apr.sidebar': settings.apr.sidebar }}
-        onClick={() => toggleSetting('apr', 'sidebar')}
+        onClick={handleToggleSidebar}
         role="button"
         tabIndex={0}
       >
@@ -108,13 +242,10 @@ export function ReaderSidebar({
         <a
           className="ico-btn guya"
           href="/"
-          onClick={(event) => {
-            event.preventDefault();
-            closeComicMode();
-          }}
+          onClick={handleClose}
         />
         <h1>
-          <a href="#" onClick={(event) => event.preventDefault()}>
+          <a href="#" onClick={handlePreventDefault}>
             {readerTitle}
           </a>
         </h1>
@@ -152,16 +283,13 @@ export function ReaderSidebar({
             <button
               className="ico-btn jump"
               data-tip="Jump to chapter... [J]"
-              onClick={() => scrollToGroup(0)}
+              onClick={handleJumpToStart}
               type="button"
             />
             <button
               className="ico-btn search"
               data-tip="Search the manga... [Ctrl]+[F]"
-              onClick={() => {
-                setSettingsTab('Reader');
-                setIsSettingsOpen(true);
-              }}
+              onClick={handleOpenSettings}
               style={{ display: 'none' }}
               type="button"
             />
@@ -170,14 +298,7 @@ export function ReaderSidebar({
             <button
               className="rdr-selector-chap ico-btn prev"
               data-tip="Previous chapter [[]"
-              onClick={() => {
-                if (isAtFirstGroup && hasAdjacentChapters) {
-                  goToAdjacentChapter(-1);
-                  return;
-                }
-
-                goToAdjacentGroup(-1);
-              }}
+              onClick={handlePrevChapter}
               type="button"
             />
             <div className="rdr-vol-wrap UI FauxDrop">
@@ -186,20 +307,7 @@ export function ReaderSidebar({
                 className="UI List SimpleList"
                 disabled={isImagesMode && parentChapters.length === 0}
                 id="rdr-vol"
-                onChange={(event) => {
-                  const nextIndex = Number.parseInt(event.target.value, 10);
-                  if (Number.isNaN(nextIndex)) {
-                    return;
-                  }
-
-                  if (isImagesMode) {
-                    if (parentChapters.length > 0) {
-                      goToChapterAtIndex(nextIndex);
-                    }
-                  } else {
-                    scrollToGroup(nextIndex);
-                  }
-                }}
+                onChange={handleChapterSelectChange}
                 value={String(isImagesMode ? activeChapterIndex : activeGroupIndex)}
               >
                 {isImagesMode ? (
@@ -238,16 +346,7 @@ export function ReaderSidebar({
               <select
                 className="UI List SimpleList"
                 id="rdr-chap"
-                onChange={(event) => {
-                  const targetPage = Number.parseInt(event.target.value, 10);
-                  const targetGroupIndex = findGroupIndexForPage(
-                    displayGroups,
-                    targetPage,
-                  );
-                  if (targetGroupIndex !== -1) {
-                    scrollToGroup(targetGroupIndex);
-                  }
-                }}
+                onChange={handlePageSelectChange}
                 value={String(activePage)}
               >
                 {imageIds.map((id, index) => (
@@ -264,14 +363,7 @@ export function ReaderSidebar({
             <button
               className="rdr-selector-chap ico-btn next"
               data-tip="Next chapter []]"
-              onClick={() => {
-                if (isAtLastGroup && hasAdjacentChapters) {
-                  goToAdjacentChapter(1);
-                  return;
-                }
-
-                goToAdjacentGroup(1);
-              }}
+              onClick={handleNextChapter}
               type="button"
             />
           </div>
@@ -286,47 +378,42 @@ export function ReaderSidebar({
               {...{ 'data-bhv.preload': settings.bhv.preload }}
               className="ico-btn hidden UI Button MultiStateButton"
               data-tip="Change preload [L]"
-              onClick={() => cycleSetting('bhv', 'preload', PRELOAD_OPTIONS)}
+              onClick={handleCyclePreload}
               type="button"
             />
             <button
               {...{ 'data-lyt.fit': settings.lyt.fit }}
               className="ico-btn UI Button MultiStateButton"
               data-tip="Change fit mode [F]"
-              onClick={() => cycleSetting('lyt', 'fit', FIT_OPTIONS)}
+              onClick={handleCycleFit}
               type="button"
             />
             <button
               {...{ 'data-lyt.direction': settings.lyt.direction }}
               className="ico-btn UI Button MultiStateButton"
               data-tip="Change layout direction [D]"
-              onClick={() =>
-                cycleSetting('lyt', 'direction', DIRECTION_OPTIONS)
-              }
+              onClick={handleCycleDirection}
               type="button"
             />
             <button
               {...{ 'data-lyt.spread': settings.lyt.spread }}
               className="ico-btn UI Button MultiStateButton"
               data-tip="Change two-page mode [Q]"
-              onClick={() => cycleSetting('lyt', 'spread', SPREAD_OPTIONS)}
+              onClick={handleCycleSpread}
               type="button"
             />
             <button
               {...{ 'data-apr.selpinned': settings.apr.selPinned }}
               className="ico-btn UI Button MultiStateButton"
               data-tip="Pin page selector [N]"
-              onClick={() => toggleSetting('apr', 'selPinned')}
+              onClick={handleTogglePinned}
               type="button"
             />
             <button
               className="ico-btn"
               data-bind="settings_button"
               data-tip="Advanced settings... [O]"
-              onClick={() => {
-                setSettingsTab('Reader');
-                setIsSettingsOpen(true);
-              }}
+              onClick={handleOpenSettings}
               type="button"
             />
           </div>
@@ -342,7 +429,7 @@ export function ReaderSidebar({
           <div
             className="header UI Button MultiStateButton"
             {...{ 'data-apr.previews': settings.apr.previews }}
-            onClick={() => toggleSetting('apr', 'previews')}
+            onClick={handleTogglePreviews}
             role="button"
             tabIndex={0}
           >
@@ -363,9 +450,10 @@ export function ReaderSidebar({
                       ? 'is-active'
                       : undefined
                   }
+                  data-group-index={String(previewGroupIndex)}
                   key={id}
                   loading="lazy"
-                  onClick={() => scrollToGroup(previewGroupIndex)}
+                  onClick={handlePreviewClick}
                   src={`${getImageUrl(id)}=w400-h380-p-k-rw-v1-nu-iv1?auditContext=thumbnail`}
                 />
               );
@@ -382,4 +470,4 @@ export function ReaderSidebar({
       </div>
     </aside>
   );
-}
+});

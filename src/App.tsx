@@ -230,6 +230,21 @@ function App() {
     [goToAdjacentChapter],
   );
 
+  const handleSelectChapter = useCallback(
+    (chapterId: string, index: number) => {
+      currentPageRef.current = 0;
+      openChapter(chapterId, chapters, index);
+    },
+    [chapters, openChapter],
+  );
+
+  const handleZoomChange = useCallback(
+    (zoom: number) => {
+      updateSetting('lyt', 'zoom', zoom);
+    },
+    [updateSetting],
+  );
+
   const navigateGroupOrChapter = useCallback(
     (delta: -1 | 1) => {
       if (displayGroups.length === 0) {
@@ -505,7 +520,6 @@ function App() {
     isOpen,
     settings.lyt.direction,
     settings.lyt.fit,
-    settings.lyt.fit,
     settings.lyt.spread,
     settings.lyt.zoom,
     syncWideGroupState,
@@ -542,10 +556,7 @@ function App() {
           <ChapterList
             chapters={chapters}
             onClose={resetReaderState}
-            onSelectChapter={(chapterId, index) => {
-              currentPageRef.current = 0;
-              openChapter(chapterId, chapters, index);
-            }}
+            onSelectChapter={handleSelectChapter}
             statusMessage={statusMessage}
             title={readerTitle}
           />
@@ -619,7 +630,7 @@ function App() {
 
             <ZoomControls
               isVisible={isZoomVisible}
-              onZoomChange={(zoom) => updateSetting('lyt', 'zoom', zoom)}
+              onZoomChange={handleZoomChange}
               showZoomControls={showZoomControls}
               zoom={settings.lyt.zoom}
             />

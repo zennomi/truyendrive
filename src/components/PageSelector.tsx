@@ -1,3 +1,10 @@
+import {
+  memo,
+  useCallback,
+  type KeyboardEvent,
+  type MouseEvent,
+} from 'react';
+
 import { pageLabel, type ReaderGroup } from '../lib/readerUtils';
 
 interface PageSelectorProps {
@@ -10,7 +17,7 @@ interface PageSelectorProps {
   scrollToGroup: (index: number, behavior?: ScrollBehavior) => void;
 }
 
-export function PageSelector({
+export const PageSelector = memo(function PageSelector({
   activeGroupIndex,
   activePageNumber,
   displayGroups,
@@ -19,6 +26,41 @@ export function PageSelector({
   isSelectorVisible,
   scrollToGroup,
 }: PageSelectorProps) {
+  const getGroupIndex = useCallback((value: string | undefined) => {
+    if (!value) {
+      return -1;
+    }
+
+    const parsedIndex = Number.parseInt(value, 10);
+    return Number.isNaN(parsedIndex) ? -1 : parsedIndex;
+  }, []);
+
+  const handleGroupClick = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      const groupIndex = getGroupIndex(event.currentTarget.dataset.groupIndex);
+      if (groupIndex !== -1) {
+        scrollToGroup(groupIndex);
+      }
+    },
+    [getGroupIndex, scrollToGroup],
+  );
+
+  const handleGroupKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return;
+      }
+
+      event.preventDefault();
+
+      const groupIndex = getGroupIndex(event.currentTarget.dataset.groupIndex);
+      if (groupIndex !== -1) {
+        scrollToGroup(groupIndex);
+      }
+    },
+    [getGroupIndex, scrollToGroup],
+  );
+
   return (
     <div className={`rdr-page-selector${isSelectorVisible ? ' vis' : ''}`}>
       <div className="rdr-page-selector-counter">
@@ -33,14 +75,10 @@ export function PageSelector({
             ]
               .filter(Boolean)
               .join(' ')}
+            data-group-index={String(index)}
             key={group.id}
-            onClick={() => scrollToGroup(index)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                scrollToGroup(index);
-              }
-            }}
+            onClick={handleGroupClick}
+            onKeyDown={handleGroupKeyDown}
             role="button"
             tabIndex={0}
           >
@@ -50,4 +88,4 @@ export function PageSelector({
       </div>
     </div>
   );
-}
+});

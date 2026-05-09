@@ -450,12 +450,12 @@ article h2 {
   align-items: center;
 }
 
-.series-content article content {
+.series-content article .series-content-body {
   min-width: 7em;
   overflow: hidden;
 }
 
-.series-content article content .manga-link.chapter {
+.series-content article .series-content-body .manga-link.chapter {
   margin-top: 1rem;
   display: none;
 }
@@ -1160,7 +1160,7 @@ aside .table th {
   .series-content article aside .manga-link {
     display: none;
   }
-  .series-content article content .manga-link.chapter {
+  .series-content article .series-content-body .manga-link.chapter {
     display: inline-block;
   }
 

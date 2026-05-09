@@ -1,8 +1,13 @@
 import type { Chapter } from '../hooks/useComicMode';
-import { useState } from 'react';
+import {
+  memo,
+  useCallback,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type MouseEvent,
+} from 'react';
 import comicStyles from '../assets/styles/comic.css?inline';
-
-const Content = 'content' as any;
 
 interface ChapterListProps {
   chapters: Chapter[];
@@ -20,7 +25,7 @@ function formatUpdatedAt(updatedAt: number) {
   return new Date(updatedAt).toLocaleDateString();
 }
 
-export function ChapterList({
+export const ChapterList = memo(function ChapterList({
   chapters,
   onClose,
   onSelectChapter,
@@ -28,13 +33,81 @@ export function ChapterList({
   title,
 }: ChapterListProps) {
   const [search, setSearch] = useState('');
-  const isLoading = statusMessage.includes('Loading');
+  const { filteredChapters, isLoading } = useMemo(() => {
+    const normalizedSearch = search.toLowerCase();
 
-  const filteredChapters = chapters
-    .map((chapter, index) => ({ chapter, index }))
-    .filter(({ chapter }) =>
-      chapter.name.toLowerCase().includes(search.toLowerCase()),
-    );
+    return {
+      filteredChapters: chapters
+        .map((chapter, index) => ({ chapter, index }))
+        .filter(({ chapter }) =>
+          chapter.name.toLowerCase().includes(normalizedSearch),
+        ),
+      isLoading: statusMessage.includes('Loading'),
+    };
+  }, [chapters, search, statusMessage]);
+
+  const handleClose = useCallback((event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    onClose();
+  }, [onClose]);
+
+  const handlePreventDefault = useCallback(
+    (
+      event:
+        | MouseEvent<HTMLAnchorElement>
+        | MouseEvent<HTMLButtonElement>
+        | MouseEvent<HTMLElement>,
+    ) => {
+      event.preventDefault();
+    },
+    [],
+  );
+
+  const handleSearchChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      setSearch(event.target.value);
+    },
+    [],
+  );
+
+  const handleReadLatest = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault();
+
+      if (chapters.length === 0) {
+        return;
+      }
+
+      const latestChapterIndex = chapters.length - 1;
+      const latestChapter = chapters[latestChapterIndex];
+
+      if (!latestChapter) {
+        return;
+      }
+
+      onSelectChapter(latestChapter.id, latestChapterIndex);
+    },
+    [chapters, onSelectChapter],
+  );
+
+  const handleChapterClick = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault();
+
+      const { chapterId, chapterIndex } = event.currentTarget.dataset;
+      if (!chapterId || !chapterIndex) {
+        return;
+      }
+
+      const parsedIndex = Number.parseInt(chapterIndex, 10);
+      if (Number.isNaN(parsedIndex)) {
+        return;
+      }
+
+      onSelectChapter(chapterId, parsedIndex);
+    },
+    [onSelectChapter],
+  );
 
   return (
     <>
@@ -54,15 +127,12 @@ export function ChapterList({
           <a
             href="#"
             className="cubari-logo"
-            onClick={(e) => {
-              e.preventDefault();
-              onClose();
-            }}
+            onClick={handleClose}
           ></a>
           <a
             className="rhombutton icon-help"
             id="help-button"
-            onClick={(e) => e.preventDefault()}
+            onClick={handlePreventDefault}
           ></a>
         </header>
 
@@ -87,26 +157,19 @@ export function ChapterList({
               <a
                 href="#"
                 className="manga-link chapter no-chapter"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (chapters.length > 0)
-                    onSelectChapter(
-                      chapters[chapters.length - 1].id,
-                      chapters.length - 1,
-                    );
-                }}
+                onClick={handleReadLatest}
               >
                 <span className="manga-link-chap"></span>
                 <span className="manga-link-text">Read latest chapter ›</span>
               </a>
             </aside>
-            <Content>
+            <section className="series-content-body">
               <h1>{title || 'Unknown Series'}</h1>
 
               <a
                 href="#"
                 className="manga-link external"
-                onClick={(e) => e.preventDefault()}
+                onClick={handlePreventDefault}
               >
                 Google Drive source
               </a>
@@ -119,19 +182,12 @@ export function ChapterList({
               <a
                 href="#"
                 className="manga-link chapter no-chapter"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (chapters.length > 0)
-                    onSelectChapter(
-                      chapters[chapters.length - 1].id,
-                      chapters.length - 1,
-                    );
-                }}
+                onClick={handleReadLatest}
               >
                 <span className="manga-link-chap"></span>
                 <span className="manga-link-text">Read latest chapter ›</span>
               </a>
-            </Content>
+            </section>
           </article>
 
           <div id="detailedView" className="table-responsive">
@@ -147,7 +203,7 @@ export function ChapterList({
                       type="text"
                       placeholder="⌕  Search"
                       value={search}
-                      onChange={(e) => setSearch(e.target.value)}
+                      onChange={handleSearchChange}
                     />
                   </th>
                   <th scope="col">Group</th>
@@ -174,11 +230,10 @@ export function ChapterList({
                     <td scope="row" className="read-icon"></td>
                     <td scope="row" className="chapter-title">
                       <a
+                        data-chapter-id={chapter.id}
+                        data-chapter-index={String(index)}
                         href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          onSelectChapter(chapter.id, index);
-                        }}
+                        onClick={handleChapterClick}
                       >
                         {chapter.name}
                       </a>
@@ -198,7 +253,7 @@ export function ChapterList({
         <article id="about" className="hidden">
           <a
             className="rhombutton icon-close"
-            onClick={(e) => e.preventDefault()}
+            onClick={handlePreventDefault}
           ></a>
           <h2>What's this thing?</h2>
           <p>
@@ -209,4 +264,4 @@ export function ChapterList({
       </div>
     </>
   );
-}
+});

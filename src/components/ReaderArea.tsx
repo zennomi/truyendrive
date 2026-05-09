@@ -1,4 +1,11 @@
-import { useRef, type RefObject } from 'react';
+import {
+  memo,
+  useRef,
+  type MouseEvent,
+  type SyntheticEvent,
+  type PointerEvent,
+  type RefObject,
+} from 'react';
 
 import {
   clampIndex,
@@ -42,7 +49,7 @@ function createIdlePointerGestureState(): PointerGestureState {
   };
 }
 
-export function ReaderArea({
+export const ReaderArea = memo(function ReaderArea({
   displayGroups,
   groupRefs,
   hoverEdge,
@@ -65,84 +72,200 @@ export function ReaderArea({
   );
   const suppressClickRef = useRef(false);
 
+  const handleAreaClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+
+    if (!settings.bhv.clickTurnPage) {
+      return;
+    }
+
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const ratio = (event.clientX - bounds.left) / bounds.width;
+
+    if (settings.lyt.direction === 'ttb') {
+      const verticalRatio = (event.clientY - bounds.top) / bounds.height;
+
+      if (verticalRatio < 0.35) {
+        performVerticalPageTurnOrChapter(-1);
+        return;
+      }
+
+      if (verticalRatio > 0.65) {
+        performVerticalPageTurnOrChapter(1);
+        return;
+      }
+
+      showPageSelector();
+      return;
+    }
+
+    if (ratio < 0.35) {
+      navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? 1 : -1);
+    } else if (ratio > 0.65) {
+      navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? -1 : 1);
+    } else {
+      showPageSelector();
+    }
+  };
+
+  const handleAreaMouseLeave = () => {
+    setHoverEdge(null);
+  };
+
+  const handleAreaMouseMove = (event: MouseEvent<HTMLDivElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const offsetX = event.clientX - bounds.left;
+    const offsetY = event.clientY - bounds.top;
+
+    const isNearSelector =
+      settings.apr.selectorAnchor === 'bottom'
+        ? offsetY >= bounds.height - SELECTOR_PROXIMITY_PX
+        : offsetX <= SELECTOR_PROXIMITY_PX;
+
+    if (isNearSelector) {
+      showPageSelector();
+    }
+
+    const isNearZoomControls =
+      offsetX >= bounds.width - ZOOM_PROXIMITY_PX &&
+      offsetY <= ZOOM_PROXIMITY_PX;
+
+    if (isNearZoomControls) {
+      showZoomControls();
+    }
+
+    if (!settings.apr.hoverinos || settings.lyt.direction === 'ttb') {
+      setHoverEdge(null);
+      return;
+    }
+
+    const ratio = offsetX / bounds.width;
+    if (ratio < 0.25) {
+      setHoverEdge('prev');
+    } else if (ratio > 0.75) {
+      setHoverEdge('next');
+    } else {
+      setHoverEdge(null);
+    }
+  };
+
+  const resetPointerGesture = () => {
+    pointerGestureRef.current = createIdlePointerGestureState();
+  };
+
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    const wrapper =
+      event.target instanceof Element
+        ? (event.target.closest(
+            '.ReaderImageWrapper',
+          ) as HTMLDivElement | null)
+        : null;
+
+    pointerGestureRef.current = {
+      active: true,
+      dragged: false,
+      initialScrollLeft: wrapper?.scrollLeft ?? 0,
+      pointerType: event.pointerType,
+      startX: event.clientX,
+      startY: event.clientY,
+      wrapper,
+    };
+    suppressClickRef.current = false;
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const gesture = pointerGestureRef.current;
+    if (!gesture.active) {
+      return;
+    }
+
+    const deltaX = event.clientX - gesture.startX;
+    const deltaY = event.clientY - gesture.startY;
+    if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
+      gesture.dragged = true;
+      suppressClickRef.current = true;
+    }
+
+    if (
+      settings.lyt.direction === 'ttb' ||
+      !settings.bhv.swipeGestures ||
+      !gesture.wrapper ||
+      Math.abs(deltaX) <= Math.abs(deltaY)
+    ) {
+      return;
+    }
+
+    const maxScrollLeft =
+      gesture.wrapper.scrollWidth - gesture.wrapper.clientWidth;
+    if (maxScrollLeft <= 0) {
+      return;
+    }
+
+    gesture.wrapper.scrollLeft = clampIndex(
+      gesture.initialScrollLeft - deltaX,
+      maxScrollLeft,
+    );
+  };
+
+  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    const gesture = pointerGestureRef.current;
+    pointerGestureRef.current = createIdlePointerGestureState();
+
+    if (
+      settings.lyt.direction === 'ttb' ||
+      !settings.bhv.swipeGestures ||
+      (gesture.pointerType !== 'touch' && gesture.pointerType !== 'pen')
+    ) {
+      return;
+    }
+
+    const deltaX = event.clientX - gesture.startX;
+    const deltaY = event.clientY - gesture.startY;
+    const horizontalSwipe =
+      Math.abs(deltaX) >= 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2;
+    if (!horizontalSwipe) {
+      return;
+    }
+
+    const wrapper = gesture.wrapper;
+    if (wrapper) {
+      const maxScrollLeft = wrapper.scrollWidth - wrapper.clientWidth;
+      if (maxScrollLeft > 0) {
+        const atStart = wrapper.scrollLeft <= 1;
+        const atEnd = maxScrollLeft - wrapper.scrollLeft <= 1;
+        if ((deltaX < 0 && !atEnd) || (deltaX > 0 && !atStart)) {
+          return;
+        }
+      }
+    }
+
+    if (deltaX < 0) {
+      navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? -1 : 1);
+      return;
+    }
+
+    navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? 1 : -1);
+  };
+
+  const handlePageImageLoad = (event: SyntheticEvent<HTMLImageElement>) => {
+    const pageId = event.currentTarget.dataset.pageId;
+    if (!pageId) {
+      return;
+    }
+
+    onPageLoad(pageId);
+    setImageLoadVersion((version) => version + 1);
+  };
+
   return (
     <div
       className="rdr-area"
-      onClick={(event) => {
-        if (suppressClickRef.current) {
-          suppressClickRef.current = false;
-          return;
-        }
-
-        if (!settings.bhv.clickTurnPage) {
-          return;
-        }
-
-        const bounds = event.currentTarget.getBoundingClientRect();
-        const ratio = (event.clientX - bounds.left) / bounds.width;
-
-        if (settings.lyt.direction === 'ttb') {
-          const verticalRatio = (event.clientY - bounds.top) / bounds.height;
-
-          if (verticalRatio < 0.35) {
-            performVerticalPageTurnOrChapter(-1);
-            return;
-          }
-
-          if (verticalRatio > 0.65) {
-            performVerticalPageTurnOrChapter(1);
-            return;
-          }
-
-          showPageSelector();
-          return;
-        }
-
-        if (ratio < 0.35) {
-          navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? 1 : -1);
-        } else if (ratio > 0.65) {
-          navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? -1 : 1);
-        } else {
-          showPageSelector();
-        }
-      }}
-      onMouseLeave={() => setHoverEdge(null)}
-      onMouseMove={(event) => {
-        const bounds = event.currentTarget.getBoundingClientRect();
-        const offsetX = event.clientX - bounds.left;
-        const offsetY = event.clientY - bounds.top;
-
-        const isNearSelector =
-          settings.apr.selectorAnchor === 'bottom'
-            ? offsetY >= bounds.height - SELECTOR_PROXIMITY_PX
-            : offsetX <= SELECTOR_PROXIMITY_PX;
-
-        if (isNearSelector) {
-          showPageSelector();
-        }
-
-        const isNearZoomControls =
-          offsetX >= bounds.width - ZOOM_PROXIMITY_PX &&
-          offsetY <= ZOOM_PROXIMITY_PX;
-
-        if (isNearZoomControls) {
-          showZoomControls();
-        }
-
-        if (!settings.apr.hoverinos || settings.lyt.direction === 'ttb') {
-          setHoverEdge(null);
-          return;
-        }
-
-        const ratio = offsetX / bounds.width;
-        if (ratio < 0.25) {
-          setHoverEdge('prev');
-        } else if (ratio > 0.75) {
-          setHoverEdge('next');
-        } else {
-          setHoverEdge(null);
-        }
-      }}
+      onClick={handleAreaClick}
+      onMouseLeave={handleAreaMouseLeave}
+      onMouseMove={handleAreaMouseMove}
     >
       <div className="preload-entity">
         {Array.from({ length: 4 }).map((_, index) => (
@@ -156,100 +279,10 @@ export function ReaderArea({
       </div>
       <div
         className="rdr-image-wrap"
-        onPointerCancel={() => {
-          pointerGestureRef.current = createIdlePointerGestureState();
-        }}
-        onPointerDown={(event) => {
-          const wrapper =
-            event.target instanceof Element
-              ? (event.target.closest(
-                  '.ReaderImageWrapper',
-                ) as HTMLDivElement | null)
-              : null;
-
-          pointerGestureRef.current = {
-            active: true,
-            dragged: false,
-            initialScrollLeft: wrapper?.scrollLeft ?? 0,
-            pointerType: event.pointerType,
-            startX: event.clientX,
-            startY: event.clientY,
-            wrapper,
-          };
-          suppressClickRef.current = false;
-        }}
-        onPointerMove={(event) => {
-          const gesture = pointerGestureRef.current;
-          if (!gesture.active) {
-            return;
-          }
-
-          const deltaX = event.clientX - gesture.startX;
-          const deltaY = event.clientY - gesture.startY;
-          if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
-            gesture.dragged = true;
-            suppressClickRef.current = true;
-          }
-
-          if (
-            settings.lyt.direction === 'ttb' ||
-            !settings.bhv.swipeGestures ||
-            !gesture.wrapper ||
-            Math.abs(deltaX) <= Math.abs(deltaY)
-          ) {
-            return;
-          }
-
-          const maxScrollLeft =
-            gesture.wrapper.scrollWidth - gesture.wrapper.clientWidth;
-          if (maxScrollLeft <= 0) {
-            return;
-          }
-
-          gesture.wrapper.scrollLeft = clampIndex(
-            gesture.initialScrollLeft - deltaX,
-            maxScrollLeft,
-          );
-        }}
-        onPointerUp={(event) => {
-          const gesture = pointerGestureRef.current;
-          pointerGestureRef.current = createIdlePointerGestureState();
-
-          if (
-            settings.lyt.direction === 'ttb' ||
-            !settings.bhv.swipeGestures ||
-            (gesture.pointerType !== 'touch' && gesture.pointerType !== 'pen')
-          ) {
-            return;
-          }
-
-          const deltaX = event.clientX - gesture.startX;
-          const deltaY = event.clientY - gesture.startY;
-          const horizontalSwipe =
-            Math.abs(deltaX) >= 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2;
-          if (!horizontalSwipe) {
-            return;
-          }
-
-          const wrapper = gesture.wrapper;
-          if (wrapper) {
-            const maxScrollLeft = wrapper.scrollWidth - wrapper.clientWidth;
-            if (maxScrollLeft > 0) {
-              const atStart = wrapper.scrollLeft <= 1;
-              const atEnd = maxScrollLeft - wrapper.scrollLeft <= 1;
-              if ((deltaX < 0 && !atEnd) || (deltaX > 0 && !atStart)) {
-                return;
-              }
-            }
-          }
-
-          if (deltaX < 0) {
-            navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? -1 : 1);
-            return;
-          }
-
-          navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? 1 : -1);
-        }}
+        onPointerCancel={resetPointerGesture}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
         onScroll={syncActiveGroupFromScroll}
         ref={imageWrapRef}
         tabIndex={-1}
@@ -265,13 +298,11 @@ export function ReaderArea({
             {group.pages.map((page) => (
               <img
                 alt={`Page ${page.index + 1}`}
+                data-page-id={page.id}
                 decoding="async"
                 key={page.id}
                 loading={isGroupPreloaded(groupIndex) ? 'eager' : 'lazy'}
-                onLoad={() => {
-                  onPageLoad(page.id);
-                  setImageLoadVersion((version) => version + 1);
-                }}
+                onLoad={handlePageImageLoad}
                 src={getImageUrl(page.id)}
               />
             ))}
@@ -296,4 +327,4 @@ export function ReaderArea({
       </div>
     </div>
   );
-}
+});

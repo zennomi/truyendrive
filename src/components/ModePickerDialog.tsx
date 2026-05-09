@@ -1,8 +1,20 @@
+import { memo, useCallback } from 'react';
+
 interface ModePickerDialogProps {
   onSelectMode: (mode: 'chapters' | 'images') => void;
 }
 
-export function ModePickerDialog({ onSelectMode }: ModePickerDialogProps) {
+export const ModePickerDialog = memo(function ModePickerDialog({
+  onSelectMode,
+}: ModePickerDialogProps) {
+  const handleSelectChapters = useCallback(() => {
+    onSelectMode('chapters');
+  }, [onSelectMode]);
+
+  const handleSelectImages = useCallback(() => {
+    onSelectMode('images');
+  }, [onSelectMode]);
+
   return (
     <section
       aria-label="Choose comic mode"
@@ -18,7 +30,7 @@ export function ModePickerDialog({ onSelectMode }: ModePickerDialogProps) {
         <div className="mode-picker-actions">
           <button
             className="mode-picker-button"
-            onClick={() => onSelectMode('chapters')}
+            onClick={handleSelectChapters}
             type="button"
           >
             <strong>Chapter List</strong>
@@ -26,7 +38,7 @@ export function ModePickerDialog({ onSelectMode }: ModePickerDialogProps) {
           </button>
           <button
             className="mode-picker-button"
-            onClick={() => onSelectMode('images')}
+            onClick={handleSelectImages}
             type="button"
           >
             <strong>Direct Images</strong>
@@ -36,4 +48,4 @@ export function ModePickerDialog({ onSelectMode }: ModePickerDialogProps) {
       </div>
     </section>
   );
-}
+});

@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useEffectEvent,
   useRef,
   useState,
   type MutableRefObject,
@@ -224,6 +225,18 @@ export function useComicMode({
     resetReaderState(false);
   }, [historyDepthRef, resetReaderState]);
 
+  const getOpenStatusMessage = useEffectEvent(() => {
+    if (isAuthLoading) {
+      return 'Loading account...';
+    }
+
+    if (accountData) {
+      return 'Detecting folder contents...';
+    }
+
+    return authError?.message ?? 'Loading account...';
+  });
+
   const openComicMode = useCallback(() => {
     const folderId = getFolderIdFromUrl();
     if (!folderId) {
@@ -242,19 +255,11 @@ export function useComicMode({
     setIsModePickerOpen(false);
     replaceImageIds([]);
     setIsOpen(false);
-    setStatusMessage(
-      isAuthLoading
-        ? 'Loading account...'
-        : accountData
-          ? 'Detecting folder contents...'
-          : authError?.message ?? 'Loading account...',
-    );
+    setStatusMessage(getOpenStatusMessage());
   }, [
-    accountData,
-    authError,
     beginReaderSession,
     cancelFetchLoop,
-    isAuthLoading,
+    getOpenStatusMessage,
     replaceChapters,
     replaceImageIds,
     resetParentChapterState,

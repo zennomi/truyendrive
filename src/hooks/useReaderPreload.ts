@@ -34,12 +34,18 @@ export function useReaderPreload({
   });
 
   const isGroupPreloaded = useCallback(
-    (index: number) =>
-      index >= 0 &&
-      index < displayGroups.length &&
-      index <=
-        activeGroupIndex +
-          getMaxPreloadDistance(preloadDistance, displayGroups.length),
+    (index: number) => {
+      const maxDistance = getMaxPreloadDistance(
+        preloadDistance,
+        displayGroups.length,
+      );
+
+      return (
+        index >= 0 &&
+        index < displayGroups.length &&
+        Math.abs(index - activeGroupIndex) <= maxDistance
+      );
+    },
     [activeGroupIndex, preloadDistance, displayGroups.length],
   );
 
