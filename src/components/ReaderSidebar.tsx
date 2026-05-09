@@ -94,8 +94,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   const previousGroupDelta = isRtl ? 1 : -1;
   const nextGroupDelta = isRtl ? -1 : 1;
   const isImagesMode = folderMode === 'images';
-  const orderedGroups =
-    isRtl ? [...displayGroups].reverse() : displayGroups;
+  const orderedGroups = isRtl ? [...displayGroups].reverse() : displayGroups;
   const chapterSelectorLabel = isImagesMode
     ? parentChapters.length > 0
       ? (parentChapters[activeChapterIndex]?.name ?? 'Unknown chapter')
@@ -286,7 +285,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
               {statusMessage}
             </div>
 
-            <button
+            {/* <button
               className="ico-btn download"
               data-tip="Download chapter in the background"
               type="button"
@@ -301,7 +300,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
                 <button className="ico-btn download-cancel" type="button" />
               </div>
             </div>
-            <a className="rdr-share ico-btn " data-tip="Copy short link [R]" />
+            <a className="rdr-share ico-btn " data-tip="Copy short link [R]" /> */}
             <button
               className="ico-btn jump"
               data-tip="Jump to chapter... [J]"

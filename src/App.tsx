@@ -111,6 +111,7 @@ function AppContent() {
     activeChapterIndex,
     chapters,
     closeComicMode,
+    folderDetails,
     folderMode,
     goToAdjacentChapter,
     goToChapterAtIndex,
@@ -601,6 +602,7 @@ function AppContent() {
         <main id="rdr-main" style={themeStyle as CSSProperties} tabIndex={-1}>
           <ChapterList
             chapters={chapters}
+            folderDetails={folderDetails}
             onClose={resetReaderState}
             onSelectChapter={handleSelectChapter}
             statusMessage={statusMessage}

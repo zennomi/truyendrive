@@ -1,4 +1,5 @@
 import type { Chapter } from '../hooks/useComicMode';
+import type { DriveFolderDetails } from '../lib/driveApi';
 import {
   memo,
   useCallback,
@@ -8,9 +9,11 @@ import {
   type MouseEvent,
 } from 'react';
 import comicStyles from '../assets/styles/comic.css?inline';
+import defaultSeriesImg from '../assets/reader/fujiload.png';
 
 interface ChapterListProps {
   chapters: Chapter[];
+  folderDetails: DriveFolderDetails | null;
   onClose: () => void;
   onSelectChapter: (chapterId: string, index: number) => void;
   statusMessage: string;
@@ -22,17 +25,19 @@ function formatUpdatedAt(updatedAt: number) {
     return 'Unknown date';
   }
 
-  return new Date(updatedAt).toLocaleDateString();
+  return new Date(updatedAt).toLocaleString();
 }
 
 export const ChapterList = memo(function ChapterList({
   chapters,
+  folderDetails,
   onClose,
   onSelectChapter,
   statusMessage,
   title,
 }: ChapterListProps) {
   const [search, setSearch] = useState('');
+  const seriesTitle = folderDetails?.title || title || 'Unknown Series';
   const { filteredChapters, isLoading } = useMemo(() => {
     const normalizedSearch = search.toLowerCase();
 
@@ -46,10 +51,13 @@ export const ChapterList = memo(function ChapterList({
     };
   }, [chapters, search, statusMessage]);
 
-  const handleClose = useCallback((event: MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault();
-    onClose();
-  }, [onClose]);
+  const handleClose = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault();
+      onClose();
+    },
+    [onClose],
+  );
 
   const handlePreventDefault = useCallback(
     (
@@ -124,11 +132,7 @@ export const ChapterList = memo(function ChapterList({
           >
             <span>‹</span>&nbsp;&nbsp;send coffee?&nbsp;&nbsp;<span>›</span>
           </a>
-          <a
-            href="#"
-            className="cubari-logo"
-            onClick={handleClose}
-          ></a>
+          <a href="#" className="cubari-logo" onClick={handleClose}></a>
           <a
             className="rhombutton icon-help"
             id="help-button"
@@ -140,20 +144,13 @@ export const ChapterList = memo(function ChapterList({
           <article>
             <aside>
               <picture>
-                {/* <img src="https://via.placeholder.com/400x600?text=No+Cover" className="img-fluid" alt={`${title} manga`} /> */}
+                <img
+                  src={folderDetails?.thumbnailUrl || defaultSeriesImg}
+                  className="img-fluid"
+                  alt={`${seriesTitle} cover`}
+                />
               </picture>
-              <table className="table table-borderless table-sm small">
-                <tbody>
-                  <tr>
-                    <th>Author</th>
-                    <td className="text-sm">Unknown</td>
-                  </tr>
-                  <tr>
-                    <th>Status</th>
-                    <td className="text-sm">Ongoing</td>
-                  </tr>
-                </tbody>
-              </table>
+
               <a
                 href="#"
                 className="manga-link chapter no-chapter"
@@ -164,21 +161,23 @@ export const ChapterList = memo(function ChapterList({
               </a>
             </aside>
             <section className="series-content-body">
-              <h1>{title || 'Unknown Series'}</h1>
+              <h1>{seriesTitle}</h1>
 
-              <a
-                href="#"
-                className="manga-link external"
-                onClick={handlePreventDefault}
-              >
-                Google Drive source
-              </a>
-
-              <p>
+              <table className="table table-borderless table-sm small">
+                <tbody>
+                  <tr>
+                    <th>Uploader</th>
+                    <td className="text-sm">
+                      {folderDetails?.ownerEmail ?? 'Unknown'}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              {/* <p>
                 This is a mock synopsis. The actual synopsis data is not
                 available in the current context, so this placeholder text is
                 displayed to match the reference design layout.
-              </p>
+              </p> */}
               <a
                 href="#"
                 className="manga-link chapter no-chapter"
@@ -206,7 +205,7 @@ export const ChapterList = memo(function ChapterList({
                       onChange={handleSearchChange}
                     />
                   </th>
-                  <th scope="col">Group</th>
+                  <th scope="col">Uploader</th>
                   <th scope="col">Last Updated</th>
                 </tr>
               </thead>
@@ -248,19 +247,6 @@ export const ChapterList = memo(function ChapterList({
             </table>
           </div>
         </div>
-      </div>
-      <div id="layers">
-        <article id="about" className="hidden">
-          <a
-            className="rhombutton icon-close"
-            onClick={handlePreventDefault}
-          ></a>
-          <h2>What's this thing?</h2>
-          <p>
-            This website is an image proxy. It takes images from other websites
-            and displays them in a better manga-oriented reader, Cubari.
-          </p>
-        </article>
       </div>
     </>
   );
