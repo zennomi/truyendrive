@@ -21,6 +21,7 @@ interface ReaderAreaProps {
   hoverEdge: 'next' | 'prev' | null;
   imageWrapRef: RefObject<HTMLDivElement | null>;
   isGroupPreloaded: (index: number) => boolean;
+  isScrollReady: boolean;
   navigateGroupOrChapter: (delta: -1 | 1) => void;
   onPageLoad: (pageId: string) => void;
   performVerticalPageTurnOrChapter: (direction: 1 | -1) => void;
@@ -55,6 +56,7 @@ export const ReaderArea = memo(function ReaderArea({
   hoverEdge,
   imageWrapRef,
   isGroupPreloaded,
+  isScrollReady,
   navigateGroupOrChapter,
   onPageLoad,
   performVerticalPageTurnOrChapter,
@@ -103,9 +105,9 @@ export const ReaderArea = memo(function ReaderArea({
     }
 
     if (ratio < 0.35) {
-      navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? 1 : -1);
+      navigateGroupOrChapter(-1);
     } else if (ratio > 0.65) {
-      navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? -1 : 1);
+      navigateGroupOrChapter(1);
     } else {
       showPageSelector();
     }
@@ -285,6 +287,7 @@ export const ReaderArea = memo(function ReaderArea({
         onPointerUp={handlePointerUp}
         onScroll={syncActiveGroupFromScroll}
         ref={imageWrapRef}
+        style={{ visibility: isScrollReady ? 'visible' : 'hidden' }}
         tabIndex={-1}
       >
         {displayGroups.map((group, groupIndex) => (

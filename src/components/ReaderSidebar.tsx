@@ -10,6 +10,7 @@ import {
 } from '../useSettings';
 import {
   findGroupIndexForPage,
+  getDisplayGroupIndex,
   getImageUrl,
   pageLabel,
   type ReaderGroup,
@@ -38,6 +39,7 @@ interface ReaderSidebarProps {
   activeChapterIndex: number;
   activePage: number;
   activePageNumber: number;
+  chapterStartGroupIndex: number;
   closeComicMode: () => void;
   cycleSetting: CycleSetting;
   displayGroups: ReaderGroup[];
@@ -46,6 +48,7 @@ interface ReaderSidebarProps {
   goToAdjacentGroup: (delta: number) => void;
   goToChapterAtIndex: (index: number) => void;
   imageIds: string[];
+  logicalActiveGroupIndex: number;
   parentChapters: Chapter[];
   readerTitle: string;
   scrollToGroup: (index: number, behavior?: ScrollBehavior) => void;
@@ -62,6 +65,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   activeChapterIndex,
   activePage,
   activePageNumber,
+  chapterStartGroupIndex,
   closeComicMode,
   cycleSetting,
   displayGroups,
@@ -70,6 +74,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   goToAdjacentGroup,
   goToChapterAtIndex,
   imageIds,
+  logicalActiveGroupIndex,
   parentChapters,
   readerTitle,
   scrollToGroup,
@@ -80,10 +85,17 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   toggleSetting,
 }: ReaderSidebarProps) {
   const hasAdjacentChapters = parentChapters.length > 1;
+  const isRtl = settings.lyt.direction === 'rtl';
   const isAtFirstGroup = activeGroupIndex === 0;
   const isAtLastGroup =
     displayGroups.length > 0 && activeGroupIndex === displayGroups.length - 1;
+  const isAtChapterStart = isRtl ? isAtLastGroup : isAtFirstGroup;
+  const isAtChapterEnd = isRtl ? isAtFirstGroup : isAtLastGroup;
+  const previousGroupDelta = isRtl ? 1 : -1;
+  const nextGroupDelta = isRtl ? -1 : 1;
   const isImagesMode = folderMode === 'images';
+  const orderedGroups =
+    isRtl ? [...displayGroups].reverse() : displayGroups;
   const chapterSelectorLabel = isImagesMode
     ? parentChapters.length > 0
       ? (parentChapters[activeChapterIndex]?.name ?? 'Unknown chapter')
@@ -112,8 +124,8 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   );
 
   const handleJumpToStart = useCallback(() => {
-    scrollToGroup(0);
-  }, [scrollToGroup]);
+    scrollToGroup(chapterStartGroupIndex);
+  }, [chapterStartGroupIndex, scrollToGroup]);
 
   const handleOpenSettings = useCallback(() => {
     setSettingsTab('Reader');
@@ -121,31 +133,33 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   }, [setIsSettingsOpen, setSettingsTab]);
 
   const handlePrevPage = useCallback(() => {
-    if (isAtFirstGroup && hasAdjacentChapters) {
+    if (isAtChapterStart && hasAdjacentChapters) {
       goToAdjacentChapter(-1);
       return;
     }
 
-    goToAdjacentGroup(-1);
+    goToAdjacentGroup(previousGroupDelta);
   }, [
     goToAdjacentChapter,
     goToAdjacentGroup,
     hasAdjacentChapters,
-    isAtFirstGroup,
+    isAtChapterStart,
+    previousGroupDelta,
   ]);
 
   const handleNextPage = useCallback(() => {
-    if (isAtLastGroup && hasAdjacentChapters) {
+    if (isAtChapterEnd && hasAdjacentChapters) {
       goToAdjacentChapter(1);
       return;
     }
 
-    goToAdjacentGroup(1);
+    goToAdjacentGroup(nextGroupDelta);
   }, [
     goToAdjacentChapter,
     goToAdjacentGroup,
     hasAdjacentChapters,
-    isAtLastGroup,
+    isAtChapterEnd,
+    nextGroupDelta,
   ]);
 
   const handlePrevChapter = useCallback(() => {
@@ -170,9 +184,22 @@ export const ReaderSidebar = memo(function ReaderSidebar({
         return;
       }
 
-      scrollToGroup(nextIndex);
+      scrollToGroup(
+        getDisplayGroupIndex(
+          nextIndex,
+          displayGroups.length,
+          settings.lyt.direction,
+        ),
+      );
     },
-    [goToChapterAtIndex, isImagesMode, parentChapters.length, scrollToGroup],
+    [
+      displayGroups.length,
+      goToChapterAtIndex,
+      isImagesMode,
+      parentChapters.length,
+      scrollToGroup,
+      settings.lyt.direction,
+    ],
   );
 
   const handlePageSelectChange = useCallback(
@@ -325,7 +352,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
                 id="rdr-chap"
                 onChange={handleChapterSelectChange}
                 value={String(
-                  isImagesMode ? activeChapterIndex : activeGroupIndex,
+                  isImagesMode ? activeChapterIndex : logicalActiveGroupIndex,
                 )}
               >
                 {isImagesMode ? (
@@ -345,7 +372,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
                     </option>
                   )
                 ) : (
-                  displayGroups.map((group, index) => (
+                  orderedGroups.map((group, index) => (
                     <option
                       className="UI SimpleListItem"
                       key={group.id}

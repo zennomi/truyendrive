@@ -2275,10 +2275,6 @@ _:-webkit-full-screen:not(:root:root),
   display: none !important;
 }
 
-.selectorAnchor-bottom.direction-rtl .rdr-page-selector-keys {
-  transform: scaleX(-1);
-}
-
 .selectorAnchor-bottom .rdr-page-selector:hover .rdr-page-selector-counter,
 .selectorAnchor-bottom .rdr-page-selector.vis .rdr-page-selector-counter,
 .selectorAnchor-bottom.selPinned-true .rdr-page-selector-counter {
@@ -2598,10 +2594,6 @@ _:-webkit-full-screen:not(:root:root),
   }
   .selPinned-true.selNum-false .rdr-page-selector-counter {
     opacity: 0;
-  }
-
-  .direction-rtl .rdr-page-selector-keys {
-    transform: scaleX(-1);
   }
 
   .rdr-page-selector:hover .rdr-page-selector-counter,

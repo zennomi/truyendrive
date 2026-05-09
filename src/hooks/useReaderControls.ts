@@ -14,6 +14,7 @@ interface UseReaderControlsParams {
   displayGroups: ReaderGroup[];
   groupRefs: RefObject<Array<HTMLDivElement | null>>;
   imageWrapRef: RefObject<HTMLDivElement | null>;
+  isScrollReady: boolean;
   isOpen: boolean;
   setActiveGroupIndex: (index: number) => void;
   settings: ReaderSettings;
@@ -25,6 +26,7 @@ export function useReaderControls({
   displayGroups,
   groupRefs,
   imageWrapRef,
+  isScrollReady,
   isOpen,
   setActiveGroupIndex,
   settings,
@@ -115,7 +117,7 @@ export function useReaderControls({
 
   const syncActiveGroupFromScroll = useCallback(() => {
     const scroller = imageWrapRef.current;
-    if (!scroller || displayGroups.length === 0) {
+    if (!isScrollReady || !scroller || displayGroups.length === 0) {
       return;
     }
 
@@ -148,6 +150,7 @@ export function useReaderControls({
     displayGroups.length,
     groupRefs,
     imageWrapRef,
+    isScrollReady,
     setActiveGroupIndex,
     settings.lyt.direction,
   ]);

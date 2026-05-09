@@ -5,6 +5,8 @@ import { getImageUrl, type ReaderGroup } from '../lib/readerUtils';
 interface UseReaderPreloadParams {
   activeGroupIndex: number;
   displayGroups: ReaderGroup[];
+  initialGroupIndex: number;
+  isInitialScrollDone: boolean;
   isOpen: boolean;
   preloadDistance: number;
 }
@@ -18,6 +20,8 @@ function getMaxPreloadDistance(preloadDistance: number, groupCount: number) {
 export function useReaderPreload({
   activeGroupIndex,
   displayGroups,
+  initialGroupIndex,
+  isInitialScrollDone,
   isOpen,
   preloadDistance,
 }: UseReaderPreloadParams) {
@@ -39,14 +43,23 @@ export function useReaderPreload({
         preloadDistance,
         displayGroups.length,
       );
+      const anchorGroupIndex = isInitialScrollDone
+        ? activeGroupIndex
+        : initialGroupIndex;
 
       return (
         index >= 0 &&
         index < displayGroups.length &&
-        Math.abs(index - activeGroupIndex) <= maxDistance
+        Math.abs(index - anchorGroupIndex) <= maxDistance
       );
     },
-    [activeGroupIndex, preloadDistance, displayGroups.length],
+    [
+      activeGroupIndex,
+      displayGroups.length,
+      initialGroupIndex,
+      isInitialScrollDone,
+      preloadDistance,
+    ],
   );
 
   useEffect(() => {
@@ -59,10 +72,13 @@ export function useReaderPreload({
       preloadDistance,
       displayGroups.length,
     );
+    const anchorGroupIndex = isInitialScrollDone
+      ? activeGroupIndex
+      : initialGroupIndex;
     const preloadUrls: string[] = [];
 
     for (let distance = 1; distance <= maxDistance; distance += 1) {
-      [activeGroupIndex + distance, activeGroupIndex - distance].forEach(
+      [anchorGroupIndex + distance, anchorGroupIndex - distance].forEach(
         (groupIndex) => {
           const group = displayGroups[groupIndex];
           if (!group) {
@@ -102,6 +118,8 @@ export function useReaderPreload({
   }, [
     activeGroupIndex,
     displayGroups,
+    initialGroupIndex,
+    isInitialScrollDone,
     isOpen,
     preloadDistance,
     resetPreloadState,

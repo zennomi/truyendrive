@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useEffectEvent,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -22,6 +23,8 @@ import { useReaderPreload } from './hooks/useReaderPreload';
 import {
   buildPageGroups,
   findGroupIndexForPage,
+  getChapterStartGroupIndex,
+  getLogicalGroupIndex,
   getReaderTitle,
   getRootClasses,
 } from './lib/readerUtils';
@@ -34,8 +37,9 @@ import {
   getThemeStyle,
   useSettings,
 } from './useSettings';
+import { AppErrorBoundary } from './components/AppErrorBoundary';
 
-function App() {
+function AppContent() {
   const {
     settings,
     cycleSetting,
@@ -45,6 +49,7 @@ function App() {
   } = useSettings();
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
   const [imageLoadVersion, setImageLoadVersion] = useState(0);
+  const [isScrollReady, setIsScrollReady] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [loadedPageIds, setLoadedPageIds] = useState<Set<string>>(
     () => new Set(),
@@ -53,7 +58,7 @@ function App() {
   const [tooWideGroups, setTooWideGroups] = useState<Record<string, true>>({});
   const imageWrapRef = useRef<HTMLDivElement | null>(null);
   const groupRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const currentPageRef = useRef(0);
+  const currentPageRef = useRef(-1);
   const historyDepthRef = useRef(0);
   const historyPageRef = useRef<number | null>(null);
   const isHandlingPopStateRef = useRef(false);
@@ -65,14 +70,14 @@ function App() {
     previousTitleRef.current = document.title;
     previousUrlRef.current = window.location.href;
     readerTitleRef.current = getReaderTitle();
-    currentPageRef.current = 0;
+    currentPageRef.current = -1;
     historyDepthRef.current = 0;
     historyPageRef.current = null;
     isHandlingPopStateRef.current = false;
   });
 
   const resetHistoryState = useEffectEvent((restoreHistoryUrl: boolean) => {
-    currentPageRef.current = 0;
+    currentPageRef.current = -1;
     historyDepthRef.current = 0;
     historyPageRef.current = null;
     isHandlingPopStateRef.current = false;
@@ -96,6 +101,7 @@ function App() {
   const resetReaderUi = useEffectEvent(() => {
     setActiveGroupIndex(0);
     setImageLoadVersion(0);
+    setIsScrollReady(false);
     setIsSettingsOpen(false);
     setLoadedPageIds(new Set());
     setTooWideGroups({});
@@ -135,16 +141,23 @@ function App() {
   const activePageNumber = imageIds.length === 0 ? 0 : activePage + 1;
   const activeGroup = displayGroups[activeGroupIndex];
   const hasAdjacentChapters = parentChapters.length > 1;
+  const isRtl = settings.lyt.direction === 'rtl';
   const isAtFirstGroup = activeGroupIndex === 0;
   const isAtLastGroup =
     displayGroups.length > 0 && activeGroupIndex === displayGroups.length - 1;
+  const chapterStartGroupIndex = getChapterStartGroupIndex(
+    displayGroups.length,
+    settings.lyt.direction,
+  );
+  const logicalActiveGroupIndex = getLogicalGroupIndex(
+    activeGroupIndex,
+    displayGroups.length,
+    settings.lyt.direction,
+  );
   const supportsZoomOverlay =
     settings.lyt.fit === 'width' || settings.lyt.fit === 'width_limit';
   const isComicSurfaceOpen =
     isOpen || folderMode === 'chapters' || isModePickerOpen;
-
-  currentPageRef.current =
-    displayGroups[activeGroupIndex]?.pages[0]?.index ?? currentPageRef.current;
 
   const {
     goToAdjacentGroup,
@@ -163,6 +176,7 @@ function App() {
     displayGroups,
     groupRefs,
     imageWrapRef,
+    isScrollReady,
     isOpen,
     setActiveGroupIndex,
     settings,
@@ -188,6 +202,8 @@ function App() {
   const { isGroupPreloaded, preloadImageRefs } = useReaderPreload({
     activeGroupIndex,
     displayGroups,
+    initialGroupIndex: chapterStartGroupIndex,
+    isInitialScrollDone: isScrollReady,
     isOpen,
     preloadDistance: settings.bhv.preload,
   });
@@ -216,7 +232,7 @@ function App() {
 
   const goToChapterAtIndexFromReader = useCallback(
     (index: number) => {
-      currentPageRef.current = 0;
+      currentPageRef.current = -1;
       goToChapterAtIndex(index);
     },
     [goToChapterAtIndex],
@@ -224,7 +240,7 @@ function App() {
 
   const goToAdjacentChapterFromReader = useCallback(
     (delta: -1 | 1) => {
-      currentPageRef.current = 0;
+      currentPageRef.current = -1;
       goToAdjacentChapter(delta);
     },
     [goToAdjacentChapter],
@@ -232,7 +248,7 @@ function App() {
 
   const handleSelectChapter = useCallback(
     (chapterId: string, index: number) => {
-      currentPageRef.current = 0;
+      currentPageRef.current = -1;
       openChapter(chapterId, chapters, index);
     },
     [chapters, openChapter],
@@ -252,12 +268,12 @@ function App() {
       }
 
       if (delta === -1 && isAtFirstGroup && hasAdjacentChapters) {
-        goToAdjacentChapterFromReader(-1);
+        goToAdjacentChapterFromReader(isRtl ? 1 : -1);
         return;
       }
 
       if (delta === 1 && isAtLastGroup && hasAdjacentChapters) {
-        goToAdjacentChapterFromReader(1);
+        goToAdjacentChapterFromReader(isRtl ? -1 : 1);
         return;
       }
 
@@ -270,6 +286,7 @@ function App() {
       hasAdjacentChapters,
       isAtFirstGroup,
       isAtLastGroup,
+      isRtl,
     ],
   );
 
@@ -446,13 +463,13 @@ function App() {
 
     if (event.key === 'ArrowRight') {
       event.preventDefault();
-      navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? -1 : 1);
+      navigateGroupOrChapter(1);
       return;
     }
 
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
-      navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? 1 : -1);
+      navigateGroupOrChapter(-1);
     }
   });
 
@@ -479,27 +496,56 @@ function App() {
     };
   }, [isComicSurfaceOpen]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isOpen || imageIds.length === 0 || displayGroups.length === 0) {
       return;
     }
 
     const targetPage = currentPageRef.current;
-    const matchingIndex = findGroupIndexForPage(displayGroups, targetPage);
-    const nextIndex = matchingIndex === -1 ? 0 : matchingIndex;
+    const matchingIndex =
+      targetPage < 0 ? -1 : findGroupIndexForPage(displayGroups, targetPage);
+    const nextIndex =
+      matchingIndex === -1 ? chapterStartGroupIndex : matchingIndex;
+    const targetGroup = groupRefs.current[nextIndex];
 
-    setActiveGroupIndex(nextIndex);
-    requestAnimationFrame(() => {
-      scrollToGroup(nextIndex, 'auto');
-    });
+    if (activeGroupIndex !== nextIndex) {
+      setActiveGroupIndex(nextIndex);
+    }
+
+    if (targetGroup) {
+      if (settings.lyt.direction === 'ttb') {
+        targetGroup.scrollIntoView({ behavior: 'auto', block: 'start' });
+      } else {
+        targetGroup.scrollIntoView({
+          behavior: 'auto',
+          block: 'nearest',
+          inline: 'start',
+        });
+
+        if (settings.bhv.resetScroll) {
+          targetGroup.scrollTop = 0;
+        }
+      }
+    }
+
+    setIsScrollReady(true);
   }, [
-    imageIds,
-    isOpen,
-    settings.lyt.fit,
-    settings.lyt.spread,
-    scrollToGroup,
     displayGroups,
+    isOpen,
+    chapterStartGroupIndex,
+    settings.bhv.resetScroll,
+    settings.lyt.fit,
+    settings.lyt.direction,
+    settings.lyt.spread,
   ]);
+
+  useEffect(() => {
+    if (!isOpen || displayGroups.length === 0) {
+      return;
+    }
+
+    currentPageRef.current = activePage;
+  }, [activePage, displayGroups.length, isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -579,8 +625,10 @@ function App() {
               activeGroup={activeGroup}
               activeChapterIndex={activeChapterIndex}
               activeGroupIndex={activeGroupIndex}
+              logicalActiveGroupIndex={logicalActiveGroupIndex}
               activePage={activePage}
               activePageNumber={activePageNumber}
+              chapterStartGroupIndex={chapterStartGroupIndex}
               closeComicMode={closeComicMode}
               cycleSetting={cycleSetting}
               displayGroups={displayGroups}
@@ -606,6 +654,7 @@ function App() {
               imageIds={imageIds}
               isGroupLoaded={isGroupLoaded}
               isSelectorVisible={isSelectorVisible}
+              direction={settings.lyt.direction}
               scrollToGroup={scrollToGroup}
             />
 
@@ -615,9 +664,12 @@ function App() {
               hoverEdge={hoverEdge}
               imageWrapRef={imageWrapRef}
               isGroupPreloaded={isGroupPreloaded}
+              isScrollReady={isScrollReady}
               navigateGroupOrChapter={navigateGroupOrChapter}
               onPageLoad={handlePageLoad}
-              performVerticalPageTurnOrChapter={performVerticalPageTurnOrChapter}
+              performVerticalPageTurnOrChapter={
+                performVerticalPageTurnOrChapter
+              }
               preloadImageRefs={preloadImageRefs}
               setHoverEdge={setHoverEdge}
               setImageLoadVersion={setImageLoadVersion}
@@ -648,6 +700,16 @@ function App() {
         </>
       )}
     </>
+  );
+}
+
+function App() {
+  const [retryKey, setRetryKey] = useState(0);
+
+  return (
+    <AppErrorBoundary onReset={() => setRetryKey((current) => current + 1)}>
+      <AppContent key={retryKey} />
+    </AppErrorBoundary>
   );
 }
 

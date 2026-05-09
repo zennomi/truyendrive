@@ -115,7 +115,8 @@ export const THEME_PRESETS: Record<
   },
 };
 
-const STORAGE_KEY = 'settings';
+const STORAGE_KEY = 'truyendrive-reader-settings';
+const LEGACY_STORAGE_KEY = 'settings';
 const STORAGE_VERSION = 'truyendrive-reader-1';
 
 const CUSTOM_THEME_DEFAULT = {
@@ -308,14 +309,42 @@ function hydrateSettings(source: unknown): ReaderSettings {
   };
 }
 
+function isPersistedSettingsPayload(value: unknown) {
+  if (!isObject(value)) {
+    return false;
+  }
+
+  if (value.VER === STORAGE_VERSION) {
+    return true;
+  }
+
+  return (
+    'lyt.fit' in value ||
+    'bhv.preload' in value ||
+    'apr.selectorAnchor' in value ||
+    'thm.theme' in value
+  );
+}
+
+function readStoredSettingsFromKey(key: string) {
+  const raw = window.localStorage.getItem(key);
+  if (!raw) {
+    return null;
+  }
+
+  const parsed = JSON.parse(raw) as unknown;
+  return isPersistedSettingsPayload(parsed) ? hydrateSettings(parsed) : null;
+}
+
 function readStoredSettings() {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return DEFAULT_SETTINGS;
+    const storedSettings = readStoredSettingsFromKey(STORAGE_KEY);
+    if (storedSettings) {
+      return storedSettings;
     }
 
-    return hydrateSettings(JSON.parse(raw));
+    const legacySettings = readStoredSettingsFromKey(LEGACY_STORAGE_KEY);
+    return legacySettings ?? DEFAULT_SETTINGS;
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -413,7 +442,14 @@ export function useSettings() {
   const [settings, setSettings] = useState<ReaderSettings>(readStoredSettings);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(flattenSettings(settings)));
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(flattenSettings(settings)),
+      );
+    } catch {
+      // Ignore storage failures so the reader can still render.
+    }
   }, [settings]);
 
   function updateSetting<

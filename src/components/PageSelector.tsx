@@ -5,12 +5,18 @@ import {
   type MouseEvent,
 } from 'react';
 
-import { pageLabel, type ReaderGroup } from '../lib/readerUtils';
+import {
+  getDisplayGroupIndex,
+  pageLabel,
+  type ReaderGroup,
+} from '../lib/readerUtils';
+import type { DirectionMode } from '../useSettings';
 
 interface PageSelectorProps {
   activeGroupIndex: number;
   activePageNumber: number;
   displayGroups: ReaderGroup[];
+  direction: DirectionMode;
   imageIds: string[];
   isGroupLoaded: (index: number) => boolean;
   isSelectorVisible: boolean;
@@ -21,11 +27,14 @@ export const PageSelector = memo(function PageSelector({
   activeGroupIndex,
   activePageNumber,
   displayGroups,
+  direction,
   imageIds,
   isGroupLoaded,
   isSelectorVisible,
   scrollToGroup,
 }: PageSelectorProps) {
+  const orderedGroups =
+    direction === 'rtl' ? [...displayGroups].reverse() : displayGroups;
   const getGroupIndex = useCallback((value: string | undefined) => {
     if (!value) {
       return -1;
@@ -67,24 +76,32 @@ export const PageSelector = memo(function PageSelector({
         {activePageNumber} / {imageIds.length}
       </div>
       <div className="rdr-page-selector-keys">
-        {displayGroups.map((group, index) => (
-          <div
-            className={[
-              index === activeGroupIndex ? 'shown' : '',
-              isGroupLoaded(index) ? 'preloaded' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            data-group-index={String(index)}
-            key={group.id}
-            onClick={handleGroupClick}
-            onKeyDown={handleGroupKeyDown}
-            role="button"
-            tabIndex={0}
-          >
-            {pageLabel(group)}
-          </div>
-        ))}
+        {orderedGroups.map((group, logicalIndex) => {
+          const displayIndex = getDisplayGroupIndex(
+            logicalIndex,
+            displayGroups.length,
+            direction,
+          );
+
+          return (
+            <div
+              className={[
+                displayIndex === activeGroupIndex ? 'shown' : '',
+                isGroupLoaded(displayIndex) ? 'preloaded' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              data-group-index={String(displayIndex)}
+              key={group.id}
+              onClick={handleGroupClick}
+              onKeyDown={handleGroupKeyDown}
+              role="button"
+              tabIndex={0}
+            >
+              {pageLabel(group)}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -99,6 +99,41 @@ export function pageLabel(group: ReaderGroup) {
   return `${group.pages[0].index + 1}-${group.pages[group.pages.length - 1].index + 1}`;
 }
 
+export function getDisplayGroupIndex(
+  logicalIndex: number,
+  groupCount: number,
+  direction: DirectionMode,
+) {
+  if (direction !== 'rtl') {
+    return logicalIndex;
+  }
+
+  return groupCount - 1 - logicalIndex;
+}
+
+export function getLogicalGroupIndex(
+  displayIndex: number,
+  groupCount: number,
+  direction: DirectionMode,
+) {
+  if (direction !== 'rtl') {
+    return displayIndex;
+  }
+
+  return groupCount - 1 - displayIndex;
+}
+
+export function getChapterStartGroupIndex(
+  groupCount: number,
+  direction: DirectionMode,
+) {
+  if (groupCount <= 0) {
+    return 0;
+  }
+
+  return direction === 'rtl' ? groupCount - 1 : 0;
+}
+
 export function clampIndex(value: number, max: number) {
   return Math.max(0, Math.min(max, value));
 }
