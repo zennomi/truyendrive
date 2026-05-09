@@ -35,9 +35,54 @@ export type Chapter = {
 
 const FOLDER_ID_PATTERN = /\/folders\/([^/?#]+)/;
 const DRIVE_FOLDER_MIME = 'application/vnd.google-apps.folder';
+const SHORTCUT_MIME = 'application/vnd.google-apps.shortcut';
 
 function getFolderIdFromUrl() {
   return window.location.href.match(FOLDER_ID_PATTERN)?.[1] ?? null;
+}
+
+function findShortcutDetails(item: DriveFolderItem): any[] | null {
+  for (let index = 0; index < item.length; index += 1) {
+    const candidate = item[index];
+
+    if (
+      Array.isArray(candidate) &&
+      typeof candidate[0] === 'string' &&
+      candidate[0].length > 0 &&
+      typeof candidate[2] === 'string' &&
+      candidate[2].startsWith('application/')
+    ) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function resolveShortcutItem(item: DriveFolderItem): DriveFolderItem {
+  const mimeType = typeof item[3] === 'string' ? item[3] : '';
+  if (mimeType !== SHORTCUT_MIME) {
+    return item;
+  }
+
+  const details = findShortcutDetails(item);
+  if (!details) {
+    return item;
+  }
+
+  const targetItem = Array.isArray(details[4]) ? (details[4] as DriveFolderItem) : null;
+  if (targetItem) {
+    return resolveShortcutItem(targetItem);
+  }
+
+  const patchedItem = [...item] as DriveFolderItem;
+  patchedItem[0] = details[0];
+  patchedItem[3] = details[2];
+  return patchedItem;
+}
+
+function resolveShortcuts(items: DriveFolderItem[]) {
+  return items.map(resolveShortcutItem);
 }
 
 function extractImageIds(items: DriveFolderItem[]) {
@@ -395,7 +440,7 @@ export function useComicMode({
             : `Loaded ${pageCount} page${pageCount === 1 ? '' : 's'}...`,
         );
 
-        const [nextItems, nextCursor] = await fetchFolderItems(
+        const [rawNextItems, nextCursor] = await fetchFolderItems(
           activeFolderId,
           cursor,
           accountData,
@@ -406,7 +451,7 @@ export function useComicMode({
           return;
         }
 
-        items = nextItems;
+        items = resolveShortcuts(rawNextItems);
         cursor = nextCursor ?? undefined;
       }
     };
@@ -446,7 +491,7 @@ export function useComicMode({
             : `Loaded ${chapterCount} chapter${chapterCount === 1 ? '' : 's'}...`,
         );
 
-        const [nextItems, nextCursor] = await fetchFolderItems(
+        const [rawNextItems, nextCursor] = await fetchFolderItems(
           activeFolderId,
           cursor,
           accountData,
@@ -457,7 +502,7 @@ export function useComicMode({
           return;
         }
 
-        items = nextItems;
+        items = resolveShortcuts(rawNextItems);
         cursor = nextCursor ?? undefined;
       }
     };
@@ -478,7 +523,7 @@ export function useComicMode({
           return;
         }
 
-        const [items, nextCursor] = await fetchFolderItems(
+        const [rawItems, nextCursor] = await fetchFolderItems(
           activeFolderId,
           undefined,
           accountData,
@@ -488,6 +533,8 @@ export function useComicMode({
         if (isCancelled || activeFetchIdRef.current !== fetchId) {
           return;
         }
+
+        const items = resolveShortcuts(rawItems);
 
         if (folderMode === null) {
           const classification = classifyItems(items);
