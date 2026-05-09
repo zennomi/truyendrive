@@ -1,10 +1,5 @@
 import type { Chapter, FolderMode } from '../hooks/useComicMode';
-import {
-  memo,
-  useCallback,
-  type ChangeEvent,
-  type MouseEvent,
-} from 'react';
+import { memo, useCallback, type ChangeEvent, type MouseEvent } from 'react';
 import {
   DIRECTION_OPTIONS,
   FIT_OPTIONS,
@@ -125,7 +120,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
     setIsSettingsOpen(true);
   }, [setIsSettingsOpen, setSettingsTab]);
 
-  const handlePrevChapter = useCallback(() => {
+  const handlePrevPage = useCallback(() => {
     if (isAtFirstGroup && hasAdjacentChapters) {
       goToAdjacentChapter(-1);
       return;
@@ -139,7 +134,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
     isAtFirstGroup,
   ]);
 
-  const handleNextChapter = useCallback(() => {
+  const handleNextPage = useCallback(() => {
     if (isAtLastGroup && hasAdjacentChapters) {
       goToAdjacentChapter(1);
       return;
@@ -152,6 +147,14 @@ export const ReaderSidebar = memo(function ReaderSidebar({
     hasAdjacentChapters,
     isAtLastGroup,
   ]);
+
+  const handlePrevChapter = useCallback(() => {
+    goToAdjacentChapter(-1);
+  }, [goToAdjacentChapter]);
+
+  const handleNextChapter = useCallback(() => {
+    goToAdjacentChapter(1);
+  }, [goToAdjacentChapter]);
 
   const handleChapterSelectChange = useCallback(
     (event: ChangeEvent<HTMLSelectElement>) => {
@@ -169,12 +172,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
 
       scrollToGroup(nextIndex);
     },
-    [
-      goToChapterAtIndex,
-      isImagesMode,
-      parentChapters.length,
-      scrollToGroup,
-    ],
+    [goToChapterAtIndex, isImagesMode, parentChapters.length, scrollToGroup],
   );
 
   const handlePageSelectChange = useCallback(
@@ -239,11 +237,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
         <div className="hide-side-actual ico-btn" />
       </div>
       <header>
-        <a
-          className="ico-btn guya"
-          href="/"
-          onClick={handleClose}
-        />
+        <a className="ico-btn guya" href="/" onClick={handleClose} />
         <h1>
           <a href="#" onClick={handlePreventDefault}>
             {readerTitle}
@@ -258,6 +252,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
             <button
               className="rdr-selector-vol ico-btn prev"
               data-tip="Next volume [.]"
+              onClick={handlePrevPage}
               type="button"
             />
             <div className="flex-spacer UI MessageBox" id="message-box">
@@ -302,13 +297,36 @@ export const ReaderSidebar = memo(function ReaderSidebar({
               type="button"
             />
             <div className="rdr-vol-wrap UI FauxDrop">
+              <label>
+                {activePageNumber} / {imageIds.length}
+              </label>
+              <select
+                className="UI List SimpleList"
+                id="rdr-vol"
+                onChange={handlePageSelectChange}
+                value={String(activePage)}
+              >
+                {imageIds.map((id, index) => (
+                  <option
+                    className="UI SimpleListItem"
+                    key={id}
+                    value={String(index)}
+                  >
+                    Page {index + 1}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="rdr-chap-wrap UI FauxDrop">
               <label>{chapterSelectorLabel}</label>
               <select
                 className="UI List SimpleList"
                 disabled={isImagesMode && parentChapters.length === 0}
-                id="rdr-vol"
+                id="rdr-chap"
                 onChange={handleChapterSelectChange}
-                value={String(isImagesMode ? activeChapterIndex : activeGroupIndex)}
+                value={String(
+                  isImagesMode ? activeChapterIndex : activeGroupIndex,
+                )}
               >
                 {isImagesMode ? (
                   parentChapters.length > 0 ? (
@@ -339,27 +357,6 @@ export const ReaderSidebar = memo(function ReaderSidebar({
                 )}
               </select>
             </div>
-            <div className="rdr-chap-wrap UI FauxDrop">
-              <label>
-                Page {activePageNumber} / {imageIds.length}
-              </label>
-              <select
-                className="UI List SimpleList"
-                id="rdr-chap"
-                onChange={handlePageSelectChange}
-                value={String(activePage)}
-              >
-                {imageIds.map((id, index) => (
-                  <option
-                    className="UI SimpleListItem"
-                    key={id}
-                    value={String(index)}
-                  >
-                    Page {index + 1}
-                  </option>
-                ))}
-              </select>
-            </div>
             <button
               className="rdr-selector-chap ico-btn next"
               data-tip="Next chapter []]"
@@ -371,6 +368,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
             <button
               className="rdr-selector-vol ico-btn next"
               data-tip="Previous volume [,]"
+              onClick={handleNextPage}
               type="button"
             />
             <div className="flex-spacer" />
