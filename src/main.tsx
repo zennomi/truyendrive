@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { AuthProvider } from './contexts/AuthContext';
 import readerStyles from './reader.css?inline';
 import shadowStyles from './index.css?inline';
 import fontStyles from './font.css?inline';
@@ -22,6 +23,8 @@ ReactDOM.createRoot(mountNode).render(
   <React.StrictMode>
     <style>{readerStyles}</style>
     <style>{shadowStyles}</style>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </React.StrictMode>,
 );

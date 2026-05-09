@@ -6,7 +6,8 @@ import {
   type MutableRefObject,
 } from 'react';
 
-import { extractImageIds } from '../lib/readerUtils';
+import { useAuth } from '../contexts/AuthContext';
+import { fetchFolderItems, getAuthUser } from '../lib/driveApi';
 
 interface UseComicModeParams {
   beginReaderSession: () => void;
@@ -15,34 +16,83 @@ interface UseComicModeParams {
   resetHistoryState: (restoreHistoryUrl: boolean) => void;
 }
 
+type DriveFolderItem = any[];
+
+const FOLDER_ID_PATTERN = /\/folders\/([^/?#]+)/;
+
+function getFolderIdFromUrl() {
+  return window.location.href.match(FOLDER_ID_PATTERN)?.[1] ?? null;
+}
+
+function extractImageIds(items: DriveFolderItem[]) {
+  const ids: string[] = [];
+
+  items.forEach((item) => {
+    const id = typeof item[0] === 'string' ? item[0] : '';
+    const mimeType = typeof item[3] === 'string' ? item[3] : '';
+
+    if (id && mimeType.startsWith('image/')) {
+      ids.push(id);
+    }
+  });
+
+  return ids;
+}
+
+function mergeImageIds(currentIds: string[], nextIds: string[]) {
+  if (nextIds.length === 0) {
+    return currentIds;
+  }
+
+  const knownIds = new Set(currentIds);
+  const mergedIds = [...currentIds];
+
+  nextIds.forEach((id) => {
+    if (!knownIds.has(id)) {
+      knownIds.add(id);
+      mergedIds.push(id);
+    }
+  });
+
+  return mergedIds.length === currentIds.length ? currentIds : mergedIds;
+}
+
 export function useComicMode({
   beginReaderSession,
   historyDepthRef,
   onResetUi,
   resetHistoryState,
 }: UseComicModeParams) {
+  const { accountData, error: authError, isLoading: isAuthLoading } = useAuth();
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
+  const [activeAuthUser, setActiveAuthUser] = useState<string | null>(null);
   const [imageIds, setImageIds] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Ready');
-  const scrollIntervalRef = useRef<number | null>(null);
+  const activeFetchIdRef = useRef(0);
+  const imageIdsRef = useRef<string[]>([]);
 
-  const cleanupAutoScroll = useCallback(() => {
-    if (scrollIntervalRef.current !== null) {
-      window.clearInterval(scrollIntervalRef.current);
-      scrollIntervalRef.current = null;
-    }
+  const cancelFetchLoop = useCallback(() => {
+    activeFetchIdRef.current += 1;
+  }, []);
+
+  const replaceImageIds = useCallback((nextImageIds: string[]) => {
+    imageIdsRef.current = nextImageIds;
+    setImageIds(nextImageIds);
   }, []);
 
   const resetReaderState = useCallback(
     (restoreHistoryUrl: boolean) => {
-      cleanupAutoScroll();
+      cancelFetchLoop();
       onResetUi();
-      setImageIds([]);
+      setActiveAuthUser(null);
+      setActiveFolderId(null);
+      replaceImageIds([]);
       setIsOpen(false);
       setStatusMessage('Reader closed');
       resetHistoryState(restoreHistoryUrl);
     },
-    [cleanupAutoScroll, onResetUi, resetHistoryState],
+    [cancelFetchLoop, onResetUi, replaceImageIds, resetHistoryState],
   );
 
   const closeComicMode = useCallback(() => {
@@ -55,73 +105,122 @@ export function useComicMode({
   }, [historyDepthRef, resetReaderState]);
 
   const openComicMode = useCallback(() => {
-    const initialIds = extractImageIds();
-
-    if (initialIds.length === 0) {
-      window.alert(
-        'No images detected on screen. Make sure image tiles are loaded first.',
-      );
+    const folderId = getFolderIdFromUrl();
+    if (!folderId) {
+      window.alert('No Google Drive folder ID found in the current URL.');
       return;
     }
 
     beginReaderSession();
-    setImageIds(initialIds);
+    cancelFetchLoop();
+    setActiveAuthUser(getAuthUser());
+    setActiveFolderId(folderId);
+    replaceImageIds([]);
     setIsOpen(true);
     setStatusMessage(
-      `Loaded ${initialIds.length} page${initialIds.length === 1 ? '' : 's'}`,
+      isAuthLoading || !accountData
+        ? 'Loading account...'
+        : 'Loading pages...',
     );
+  }, [accountData, beginReaderSession, cancelFetchLoop, isAuthLoading, replaceImageIds]);
 
-    const scrollContainer = document.querySelector('c-wiz[data-parent]');
-    if (!scrollContainer) {
+  useEffect(() => {
+    if (!isOpen || !activeFolderId || !activeAuthUser) {
       return;
     }
 
-    let lastHeight = 0;
-    let sameHeightCount = 0;
+    if (isAuthLoading) {
+      setStatusMessage('Loading account...');
+      return;
+    }
 
-    cleanupAutoScroll();
-    scrollIntervalRef.current = window.setInterval(() => {
-      const currentHeight = scrollContainer.scrollHeight;
-      scrollContainer.scrollTop = currentHeight;
+    if (!accountData) {
+      setStatusMessage(authError?.message ?? 'Failed to load account');
+      return;
+    }
 
-      const newIds = extractImageIds();
-      setImageIds((currentIds) => {
-        let changed = false;
-        const mergedIds = [...currentIds];
+    const fetchId = activeFetchIdRef.current + 1;
+    activeFetchIdRef.current = fetchId;
+    let isCancelled = false;
 
-        newIds.forEach((id) => {
-          if (!mergedIds.includes(id)) {
-            mergedIds.push(id);
-            changed = true;
+    setStatusMessage('Loading pages...');
+
+    const loadItems = async () => {
+      let cursor: string | undefined;
+
+      try {
+        while (!isCancelled && activeFetchIdRef.current === fetchId) {
+          const [items, nextCursor] = await fetchFolderItems(
+            activeFolderId,
+            cursor,
+            accountData,
+            activeAuthUser,
+          );
+
+          if (isCancelled || activeFetchIdRef.current !== fetchId) {
+            return;
           }
-        });
 
-        if (changed) {
-          setStatusMessage(`Loaded ${mergedIds.length}`);
-          return mergedIds;
+          const mergedIds = mergeImageIds(
+            imageIdsRef.current,
+            extractImageIds(items),
+          );
+
+          if (mergedIds !== imageIdsRef.current) {
+            replaceImageIds(mergedIds);
+          }
+
+          const pageCount = mergedIds.length;
+          if (!nextCursor) {
+            setStatusMessage(
+              pageCount === 0
+                ? 'No image files found in this folder'
+                : `Loaded ${pageCount} page${pageCount === 1 ? '' : 's'}`,
+            );
+            return;
+          }
+
+          setStatusMessage(
+            pageCount === 0
+              ? 'Loading pages...'
+              : `Loaded ${pageCount} page${pageCount === 1 ? '' : 's'}...`,
+          );
+          cursor = nextCursor;
+        }
+      } catch (error) {
+        if (isCancelled || activeFetchIdRef.current !== fetchId) {
+          return;
         }
 
-        return currentIds;
-      });
-
-      if (currentHeight === lastHeight) {
-        sameHeightCount += 1;
-        if (sameHeightCount >= 3) {
-          cleanupAutoScroll();
-          setStatusMessage((message) => `${message}`);
-        }
-      } else {
-        lastHeight = currentHeight;
-        sameHeightCount = 0;
+        setStatusMessage(
+          error instanceof Error ? error.message : 'Failed to load folder items',
+        );
       }
-    }, 1500);
-  }, [beginReaderSession, cleanupAutoScroll]);
+    };
+
+    void loadItems();
+
+    return () => {
+      isCancelled = true;
+      if (activeFetchIdRef.current === fetchId) {
+        activeFetchIdRef.current += 1;
+      }
+    };
+  }, [
+    accountData,
+    activeAuthUser,
+    activeFolderId,
+    authError,
+    isAuthLoading,
+    isOpen,
+    replaceImageIds,
+  ]);
 
   useEffect(
     () => () => {
-      cleanupAutoScroll();
+      cancelFetchLoop();
     },
-    [cleanupAutoScroll],
+    [cancelFetchLoop],
   );
 
   return {
@@ -130,7 +229,6 @@ export function useComicMode({
     isOpen,
     openComicMode,
     resetReaderState,
-    scrollIntervalRef,
     statusMessage,
   };
 }

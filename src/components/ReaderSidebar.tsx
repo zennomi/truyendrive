@@ -301,7 +301,7 @@ export function ReaderSidebar({
                   key={id}
                   loading="lazy"
                   onClick={() => scrollToGroup(previewGroupIndex)}
-                  src={getImageUrl(id)}
+                  src={`${getImageUrl(id)}=w400-h380-p-k-rw-v1-nu-iv1?auditContext=thumbnail`}
                 />
               );
             })}

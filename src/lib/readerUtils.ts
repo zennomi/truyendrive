@@ -1,4 +1,5 @@
 import type { DirectionMode, ReaderSettings } from '../useSettings';
+import { getAuthUser } from './driveApi';
 
 export type ReaderPage = {
   id: string;
@@ -26,52 +27,6 @@ export type PointerGestureState = {
 };
 
 export const READER_HISTORY_HASH = 'truyendrive-page';
-
-export function extractImageIds() {
-  const displayModeDiv = document.querySelector('div[data-display-mode]');
-  const displayMode = displayModeDiv?.getAttribute('data-display-mode');
-
-  const items =
-    displayMode === '1'
-      ? document.querySelectorAll('tr[data-id][role="row"]')
-      : document.querySelectorAll('div[data-id][role="gridcell"]');
-  const ids: string[] = [];
-
-  items.forEach((item) => {
-    let fileName = '';
-
-    const elements = Array.from(item.querySelectorAll('*'));
-    for (const element of elements) {
-      if (element.children.length !== 0) {
-        continue;
-      }
-
-      const text = element.textContent?.trim() ?? '';
-      if (/\.(jpg|jpeg|png|webp|gif|bmp|heic)$/i.test(text)) {
-        fileName = text;
-        break;
-      }
-    }
-
-    if (!fileName) {
-      const labelElement = item.hasAttribute('aria-label')
-        ? item
-        : item.querySelector('[aria-label]');
-      const label = labelElement?.getAttribute('aria-label') ?? '';
-      const match = label.match(/^(.+?\.(?:jpg|jpeg|png|webp|gif|bmp|heic))/i);
-      if (match) {
-        fileName = match[1];
-      }
-    }
-
-    const id = item.getAttribute('data-id');
-    if (id && fileName && !ids.includes(id)) {
-      ids.push(id);
-    }
-  });
-
-  return ids;
-}
 
 export function buildPageGroups(
   imageIds: string[],
@@ -115,8 +70,8 @@ export function getReaderTitle() {
   );
 }
 
-export function getImageUrl(id: string) {
-  return `https://lh3.google.com/u/0/d/${id}`;
+export function getImageUrl(id: string, authUser = getAuthUser()) {
+  return `https://lh3.google.com/u/${authUser}/d/${id}`;
 }
 
 export function getRootClasses(settings: ReaderSettings) {
