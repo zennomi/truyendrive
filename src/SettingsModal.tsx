@@ -36,7 +36,9 @@ interface SettingsModalProps {
 type OptionValue = string | number | boolean;
 
 function startCase(value: string) {
-  return value.replace(/[-_]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+  return value
+    .replace(/[-_]/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function SettingBlock({
@@ -155,7 +157,12 @@ function SliderGroup<TValue extends number>({
           ))}
         </div>
       </div>
-      <input className="slider-value" type="text" readOnly value={value === 100 && options.includes(100 as TValue) ? '∞' : value} />
+      <input
+        className="slider-value"
+        type="text"
+        readOnly
+        value={value === 100 && options.includes(100 as TValue) ? '∞' : value}
+      />
     </div>
   );
 }
@@ -174,10 +181,20 @@ function ThemeDropdown({
   return (
     <div className="dropdown UI InputDropdown" onClick={() => setOpen(!open)}>
       <div className="input-container">
-        <input type="text" placeholder={selected} className="dropbtn" readOnly value={selected} />
+        <input
+          type="text"
+          placeholder={selected}
+          className="dropbtn"
+          readOnly
+          value={selected}
+        />
         <span className="arrd" />
       </div>
-      <div className={`dropdown-content${open ? '' : ' hidden'}`} tabIndex={-1} style={{ height: 'unset' }}>
+      <div
+        className={`dropdown-content${open ? '' : ' hidden'}`}
+        tabIndex={-1}
+        style={{ height: 'unset' }}
+      >
         {values.map((value) => (
           <button
             className="opts"
@@ -202,7 +219,10 @@ function SettingsContent({
   settings,
   tab,
   updateSetting,
-}: Omit<SettingsModalProps, 'activeTab' | 'onClose' | 'onTabChange' | 'open'> & {
+}: Omit<
+  SettingsModalProps,
+  'activeTab' | 'onClose' | 'onTabChange' | 'open'
+> & {
   tab: SettingsTab;
 }) {
   const resolvedTheme = getResolvedTheme(settings.thm);
@@ -327,7 +347,17 @@ function SettingsContent({
             </div>
           </div>
         </SettingBlock>
-        <SettingBlock nomobile disabled={['none', 'all_limit', 'height_limit', 'all', 'height'].includes(settings.lyt.fit)} title="Maximum page width">
+        <SettingBlock
+          nomobile
+          disabled={[
+            'none',
+            'all_limit',
+            'height_limit',
+            'all',
+            'height',
+          ].includes(settings.lyt.fit)}
+          title="Maximum page width"
+        >
           <SliderGroup
             onChange={(value) => updateSetting('lyt', 'zoom', value)}
             options={ZOOM_OPTIONS}
@@ -378,7 +408,10 @@ function SettingsContent({
             value={settings.bhv.preload}
           />
         </SettingBlock>
-        <SettingBlock nomobile title="Vertical scroll speed using keyboard arrows">
+        <SettingBlock
+          nomobile
+          title="Vertical scroll speed using keyboard arrows"
+        >
           <SliderGroup
             onChange={(value) => updateSetting('bhv', 'scrollYDelta', value)}
             options={SCROLL_SPEED_OPTIONS}
@@ -402,7 +435,10 @@ function SettingsContent({
             value={settings.bhv.clickTurnPage}
           />
         </SettingBlock>
-        <SettingBlock compact title="Turn pages with arrow keys in vertical view">
+        <SettingBlock
+          compact
+          title="Turn pages with arrow keys in vertical view"
+        >
           <BooleanGroup
             falseLabel="Disabled"
             onChange={(value) => updateSetting('bhv', 'arrowTurnPage', value)}
@@ -459,7 +495,11 @@ function SettingsContent({
             value={settings.apr.selNum}
           />
         </SettingBlock>
-        <SettingBlock compact nomobile title="Mouseover reader hints (next, prev)">
+        <SettingBlock
+          compact
+          nomobile
+          title="Mouseover reader hints (next, prev)"
+        >
           <BooleanGroup
             falseLabel="Hidden"
             onChange={(value) => updateSetting('apr', 'hoverinos', value)}
@@ -493,7 +533,11 @@ function SettingsContent({
             values={THEME_OPTIONS}
           />
         </SettingBlock>
-        <SettingBlock compact disabled={settings.thm.theme !== 'Custom'} title="Interface Color">
+        <SettingBlock
+          compact
+          disabled={settings.thm.theme !== 'Custom'}
+          title="Interface Color"
+        >
           <button
             aria-label="toggle color picker dialog"
             className="UI ColorPicker"
@@ -501,7 +545,11 @@ function SettingsContent({
               const input = document.createElement('input');
               input.type = 'color';
               input.value = themeValues.primaryCol;
-              input.oninput = (e) => updateThemeColor('primaryCol', (e.target as HTMLInputElement).value);
+              input.oninput = (e) =>
+                updateThemeColor(
+                  'primaryCol',
+                  (e.target as HTMLInputElement).value,
+                );
               input.click();
             }}
             role="button"
@@ -509,7 +557,11 @@ function SettingsContent({
             type="button"
           />
         </SettingBlock>
-        <SettingBlock compact disabled={settings.thm.theme !== 'Custom'} title="Text Color">
+        <SettingBlock
+          compact
+          disabled={settings.thm.theme !== 'Custom'}
+          title="Text Color"
+        >
           <button
             aria-label="toggle color picker dialog"
             className="UI ColorPicker"
@@ -517,7 +569,11 @@ function SettingsContent({
               const input = document.createElement('input');
               input.type = 'color';
               input.value = themeValues.textCol;
-              input.oninput = (e) => updateThemeColor('textCol', (e.target as HTMLInputElement).value);
+              input.oninput = (e) =>
+                updateThemeColor(
+                  'textCol',
+                  (e.target as HTMLInputElement).value,
+                );
               input.click();
             }}
             role="button"
@@ -525,7 +581,11 @@ function SettingsContent({
             type="button"
           />
         </SettingBlock>
-        <SettingBlock compact disabled={settings.thm.theme !== 'Custom'} title="Accent Color">
+        <SettingBlock
+          compact
+          disabled={settings.thm.theme !== 'Custom'}
+          title="Accent Color"
+        >
           <button
             aria-label="toggle color picker dialog"
             className="UI ColorPicker"
@@ -533,7 +593,11 @@ function SettingsContent({
               const input = document.createElement('input');
               input.type = 'color';
               input.value = themeValues.accentCol;
-              input.oninput = (e) => updateThemeColor('accentCol', (e.target as HTMLInputElement).value);
+              input.oninput = (e) =>
+                updateThemeColor(
+                  'accentCol',
+                  (e.target as HTMLInputElement).value,
+                );
               input.click();
             }}
             role="button"
@@ -541,7 +605,11 @@ function SettingsContent({
             type="button"
           />
         </SettingBlock>
-        <SettingBlock compact disabled={settings.thm.theme !== 'Custom'} title="Reader Background">
+        <SettingBlock
+          compact
+          disabled={settings.thm.theme !== 'Custom'}
+          title="Reader Background"
+        >
           <button
             aria-label="toggle color picker dialog"
             className="UI ColorPicker"
@@ -549,7 +617,11 @@ function SettingsContent({
               const input = document.createElement('input');
               input.type = 'color';
               input.value = themeValues.readerBg;
-              input.oninput = (e) => updateThemeColor('readerBg', (e.target as HTMLInputElement).value);
+              input.oninput = (e) =>
+                updateThemeColor(
+                  'readerBg',
+                  (e.target as HTMLInputElement).value,
+                );
               input.click();
             }}
             role="button"
@@ -557,8 +629,18 @@ function SettingsContent({
             type="button"
           />
         </SettingBlock>
-        <SettingBlock compact disabled={settings.thm.theme !== 'Custom' || !isCustomThemeDirty(settings.thm)} title="">
-          <button className="reset-btn UI ResetButton" onClick={resetCustomTheme} type="button">
+        <SettingBlock
+          compact
+          disabled={
+            settings.thm.theme !== 'Custom' || !isCustomThemeDirty(settings.thm)
+          }
+          title=""
+        >
+          <button
+            className="reset-btn UI ResetButton"
+            onClick={resetCustomTheme}
+            type="button"
+          >
             Reset
           </button>
         </SettingBlock>
@@ -570,7 +652,18 @@ function SettingsContent({
             <SliderGroup
               onChange={(value) => updateSetting('adv', 'spreadCount', value)}
               options={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
-              ticks={['1p', '2p', '3p', '4p', '5p', '6p', '7p', '8p', '9p', '10p']}
+              ticks={[
+                '1p',
+                '2p',
+                '3p',
+                '4p',
+                '5p',
+                '6p',
+                '7p',
+                '8p',
+                '9p',
+                '10p',
+              ]}
               value={settings.adv.spreadCount}
             />
           </SettingBlock>
@@ -584,9 +677,22 @@ function SettingsContent({
           </SettingBlock>
           <SettingBlock title="Number of parallel image downloads">
             <SliderGroup
-              onChange={(value) => updateSetting('adv', 'parallelDownloads', value)}
+              onChange={(value) =>
+                updateSetting('adv', 'parallelDownloads', value)
+              }
               options={[5, 10, 15, 20, 25, 30, 35, 40, 45, 50]}
-              ticks={['5', '10', '15', '20', '25', '30', '35', '40', '45', '50']}
+              ticks={[
+                '5',
+                '10',
+                '15',
+                '20',
+                '25',
+                '30',
+                '35',
+                '40',
+                '45',
+                '50',
+              ]}
               value={settings.adv.parallelDownloads}
             />
           </SettingBlock>
@@ -601,16 +707,22 @@ function SettingsContent({
           <div />
         </div>
         <hr />
-        <p>Design, UX: Algoinde</p>
-        <p>Reader code: Algoinde, funkyhippo, Einlion</p>
-        <p>Backend: appu</p>
+        <p>Reader code: Cubari.moe</p>
+        <p>Userscript: Zennomi</p>
         <hr />
-        <a href="https://ko-fi.com/cubari" rel="noreferrer" target="_blank">
-          Send coffee :P
+        <a
+          href="https://github.com/zennomi/truyendrive"
+          rel="noreferrer"
+          target="_blank"
+        >
+          github
         </a>
         <hr />
         <p style={{ maxWidth: '15em', textAlign: 'center', lineHeight: 1.5 }}>
-          Cubari does not host any of the content you are viewing. Just like your computer does not store or own all the images you see on the internet, Cubari is doing the same thing. We are simply a service that lets you view other data on the internet using our custom UI.
+          TruyenDrive does not host any of the content you are viewing. Just
+          like your computer does not store or own all the images you see on the
+          internet, TruyenDrive is doing the same thing. We are simply a service
+          that lets you view other data on the internet using our custom UI.
         </p>
       </div>
     </>
@@ -630,7 +742,14 @@ export function SettingsModal({
     return null;
   }
 
-  const tabs: SettingsTab[] = ['Reader', 'Behavior', 'Layout', 'Themes', 'Advanced', 'About'];
+  const tabs: SettingsTab[] = [
+    'Reader',
+    'Behavior',
+    'Layout',
+    'Themes',
+    'Advanced',
+    'About',
+  ];
 
   return (
     <div
@@ -675,7 +794,7 @@ export function SettingsModal({
             tab={activeTab}
             updateSetting={updateSetting}
           />
-        {/* @ts-ignore */}
+          {/* @ts-ignore */}
         </content>
       </div>
     </div>

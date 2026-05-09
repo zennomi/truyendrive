@@ -33,11 +33,12 @@
   content: '\e907';
 }
 
+/* 
 .cubari-logo:before {
   content: 'c';
   font-family: 'coobaree';
   display: inline-block;
-}
+} */
 
 html * {
   box-sizing: border-box;
@@ -125,9 +126,9 @@ code {
   height: 100%;
 }
 
-.donate {
+/* .donate {
   visibility: hidden;
-}
+} */
 
 .home .donate {
   visibility: visible;
@@ -412,8 +413,7 @@ article h2 {
   margin-bottom: 5rem;
 }
 
-.series-content:after {
-  /*#history:after {*/
+/* .series-content:after {
   content: 'c';
   font-family: 'coobaree';
   display: block;
@@ -422,7 +422,7 @@ article h2 {
   padding: 1rem 0 2rem;
   font-size: 3rem;
   opacity: 0.1;
-}
+} */
 
 .series-content .sidecard {
   background-color: #1a1a1a;

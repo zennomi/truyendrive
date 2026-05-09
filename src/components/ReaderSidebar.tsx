@@ -323,9 +323,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
               type="button"
             />
             <div className="rdr-vol-wrap UI FauxDrop">
-              <label>
-                {activePageNumber} / {imageIds.length}
-              </label>
+              <label>{activePageNumber}</label>
               <select
                 className="UI List SimpleList"
                 id="rdr-vol"
@@ -486,9 +484,13 @@ export const ReaderSidebar = memo(function ReaderSidebar({
         </section>
         <section className="rdr-description">
           <div>
-            {settings.lyt.direction === 'ttb'
-              ? 'Top-to-bottom mode keeps the long-strip Google Drive flow and uses Cubari layout controls.'
-              : 'Horizontal mode uses paged wrappers with Cubari fit, spread, theme, and selector controls.'}
+            <a
+              href="https://github.com/zennomi/truyendrive"
+              target="_blank"
+              rel="noreferrer"
+            >
+              truyendrive on GitHub
+            </a>
           </div>
         </section>
       </div>

@@ -13,7 +13,9 @@ export const DIRECTION_OPTIONS = ['ltr', 'ttb', 'rtl'] as const;
 export const SPREAD_OPTIONS = ['1', '2', '2-odd'] as const;
 export const PRELOAD_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 100] as const;
 export const ZOOM_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
-export const SCROLL_SPEED_OPTIONS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50] as const;
+export const SCROLL_SPEED_OPTIONS = [
+  5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
+] as const;
 export const SELECTOR_ANCHOR_OPTIONS = ['left', 'bottom'] as const;
 export const HISTORY_UPDATE_OPTIONS = [
   'none',
@@ -77,7 +79,13 @@ export interface ReaderSettings {
   };
 }
 
-export type SettingsTab = 'Reader' | 'Behavior' | 'Layout' | 'Themes' | 'Advanced' | 'About';
+export type SettingsTab =
+  | 'Reader'
+  | 'Behavior'
+  | 'Layout'
+  | 'Themes'
+  | 'Advanced'
+  | 'About';
 
 export const THEME_PRESETS: Record<
   Exclude<ThemeName, 'Custom'>,
@@ -184,7 +192,9 @@ function normalizeColor(value: unknown, fallback: string) {
   }
 
   const normalized = value.trim();
-  return /^#[0-9a-f]{6}$/i.test(normalized) ? normalized.toUpperCase() : fallback;
+  return /^#[0-9a-f]{6}$/i.test(normalized)
+    ? normalized.toUpperCase()
+    : fallback;
 }
 
 function flattenSettings(settings: ReaderSettings) {
@@ -226,8 +236,16 @@ function hydrateSettings(source: unknown): ReaderSettings {
 
   return {
     lyt: {
-      fit: clampToOptions(source['lyt.fit'], FIT_OPTIONS, DEFAULT_SETTINGS.lyt.fit),
-      zoom: clampToOptions(source['lyt.zoom'], ZOOM_OPTIONS, DEFAULT_SETTINGS.lyt.zoom),
+      fit: clampToOptions(
+        source['lyt.fit'],
+        FIT_OPTIONS,
+        DEFAULT_SETTINGS.lyt.fit,
+      ),
+      zoom: clampToOptions(
+        source['lyt.zoom'],
+        ZOOM_OPTIONS,
+        DEFAULT_SETTINGS.lyt.zoom,
+      ),
       direction: clampToOptions(
         source['lyt.direction'],
         DIRECTION_OPTIONS,
@@ -279,19 +297,35 @@ function hydrateSettings(source: unknown): ReaderSettings {
         SELECTOR_ANCHOR_OPTIONS,
         DEFAULT_SETTINGS.apr.selectorAnchor,
       ),
-      selPinned: asBoolean(source['apr.selPinned'], DEFAULT_SETTINGS.apr.selPinned),
+      selPinned: asBoolean(
+        source['apr.selPinned'],
+        DEFAULT_SETTINGS.apr.selPinned,
+      ),
       selNum: asBoolean(source['apr.selNum'], DEFAULT_SETTINGS.apr.selNum),
-      hoverinos: asBoolean(source['apr.hoverinos'], DEFAULT_SETTINGS.apr.hoverinos),
+      hoverinos: asBoolean(
+        source['apr.hoverinos'],
+        DEFAULT_SETTINGS.apr.hoverinos,
+      ),
       sidebar: asBoolean(source['apr.sidebar'], DEFAULT_SETTINGS.apr.sidebar),
-      previews: asBoolean(source['apr.previews'], DEFAULT_SETTINGS.apr.previews),
+      previews: asBoolean(
+        source['apr.previews'],
+        DEFAULT_SETTINGS.apr.previews,
+      ),
     },
     thm: {
-      theme: clampToOptions(source['thm.theme'], THEME_OPTIONS, DEFAULT_SETTINGS.thm.theme),
+      theme: clampToOptions(
+        source['thm.theme'],
+        THEME_OPTIONS,
+        DEFAULT_SETTINGS.thm.theme,
+      ),
       primaryCol: normalizeColor(
         source['thm.primaryCol'],
         DEFAULT_SETTINGS.thm.primaryCol,
       ),
-      textCol: normalizeColor(source['thm.textCol'], DEFAULT_SETTINGS.thm.textCol),
+      textCol: normalizeColor(
+        source['thm.textCol'],
+        DEFAULT_SETTINGS.thm.textCol,
+      ),
       accentCol: normalizeColor(
         source['thm.accentCol'],
         DEFAULT_SETTINGS.thm.accentCol,
@@ -302,9 +336,18 @@ function hydrateSettings(source: unknown): ReaderSettings {
       ),
     },
     adv: {
-      spreadCount: typeof source['adv.spreadCount'] === 'number' ? source['adv.spreadCount'] : DEFAULT_SETTINGS.adv.spreadCount,
-      spreadOffset: typeof source['adv.spreadOffset'] === 'number' ? source['adv.spreadOffset'] : DEFAULT_SETTINGS.adv.spreadOffset,
-      parallelDownloads: typeof source['adv.parallelDownloads'] === 'number' ? source['adv.parallelDownloads'] : DEFAULT_SETTINGS.adv.parallelDownloads,
+      spreadCount:
+        typeof source['adv.spreadCount'] === 'number'
+          ? source['adv.spreadCount']
+          : DEFAULT_SETTINGS.adv.spreadCount,
+      spreadOffset:
+        typeof source['adv.spreadOffset'] === 'number'
+          ? source['adv.spreadOffset']
+          : DEFAULT_SETTINGS.adv.spreadOffset,
+      parallelDownloads:
+        typeof source['adv.parallelDownloads'] === 'number'
+          ? source['adv.parallelDownloads']
+          : DEFAULT_SETTINGS.adv.parallelDownloads,
     },
   };
 }
@@ -455,11 +498,7 @@ export function useSettings() {
   function updateSetting<
     TCategory extends keyof ReaderSettings,
     TKey extends keyof ReaderSettings[TCategory],
-  >(
-    category: TCategory,
-    key: TKey,
-    value: ReaderSettings[TCategory][TKey],
-  ) {
+  >(category: TCategory, key: TKey, value: ReaderSettings[TCategory][TKey]) {
     setSettings((current) => ({
       ...current,
       [category]: {
@@ -479,8 +518,11 @@ export function useSettings() {
   ) {
     setSettings((current) => {
       const currentValue = current[category][key];
-      const currentIndex = options.findIndex((option) => option === currentValue);
-      const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % options.length;
+      const currentIndex = options.findIndex(
+        (option) => option === currentValue,
+      );
+      const nextIndex =
+        currentIndex === -1 ? 0 : (currentIndex + 1) % options.length;
 
       return {
         ...current,

@@ -35,25 +35,34 @@
 
 .truyendrive-launcher {
   align-items: center;
-  background: linear-gradient(135deg, #1a73e8 0%, #0b57d0 100%);
-  border: 0;
-  border-radius: 999px;
+  background-color: #c608082e;
+  border: 1px solid #f00c;
+  border-radius: 0.2em;
   bottom: 20px;
-  box-shadow: 0 12px 28px rgba(11, 87, 208, 0.35);
-  color: #fff;
+  color: #ddd;
   cursor: pointer;
   display: inline-flex;
   font:
-    600 14px/1 'Open Sans',
+    600 0.9rem/1 'Open Sans',
     sans-serif;
-  gap: 0.65rem;
-  padding: 0.9rem 1.2rem;
+  padding: 0;
   position: fixed;
-  right: 20px;
+  right: 80px;
   z-index: 2147483647;
+  transition: all 0.2s ease;
+}
+
+.truyendrive-launcher .launcher-icon {
+  border-right: 1px solid #f00c;
+  padding: 0.6em 0.8em;
+}
+
+.truyendrive-launcher .launcher-text {
+  padding: 0.6em 1em;
 }
 
 .truyendrive-launcher:hover {
+  background-color: #c608084d;
   transform: translateY(-1px);
 }
 

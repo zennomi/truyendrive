@@ -40,4 +40,4 @@ jobs:
           publish_dir: ./dist
           publish_branch: release
           force_orphan: true
-          commit_message: "chore(release): publish userscript"
+          commit_message: 'chore(release): publish userscript'

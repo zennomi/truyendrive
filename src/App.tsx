@@ -594,8 +594,8 @@ function AppContent() {
         onClick={openComicMode}
         type="button"
       >
-        <span>📖</span>
-        <span>Comic Mode</span>
+        <span className="launcher-icon">📖</span>
+        <span className="launcher-text">TruyenDrive</span>
       </button>
 
       {folderMode === 'chapters' && !isOpen && (

@@ -10,6 +10,7 @@ import {
 } from 'react';
 import comicStyles from '../assets/styles/comic.css?inline';
 import defaultSeriesImg from '../assets/reader/fujiload.png';
+import logo from '../assets/truyendrive.webp';
 
 interface ChapterListProps {
   chapters: Chapter[];
@@ -126,18 +127,23 @@ export const ChapterList = memo(function ChapterList({
         <header>
           <a
             className="donate"
-            href="https://patreon.com/algoinde"
+            href="https://github.com/zennomi/truyendrive"
             target="_blank"
             rel="noreferrer"
           >
-            <span>‹</span>&nbsp;&nbsp;send coffee?&nbsp;&nbsp;<span>›</span>
+            <span>‹</span>&nbsp;&nbsp;github&nbsp;&nbsp;<span>›</span>
           </a>
-          <a href="#" className="cubari-logo" onClick={handleClose}></a>
-          <a
-            className="rhombutton icon-help"
-            id="help-button"
-            onClick={handlePreventDefault}
-          ></a>
+          <a href="#" className="cubari-logo" onClick={handlePreventDefault}>
+            <img
+              style={{
+                height: '60px',
+                width: '60px',
+              }}
+              src={logo}
+              alt="TruyenDrive"
+            />
+          </a>
+          <a className="rhombutton icon-close" onClick={handleClose}></a>
         </header>
 
         <div className="series-content">

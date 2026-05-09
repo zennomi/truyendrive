@@ -1,9 +1,4 @@
-import {
-  memo,
-  useCallback,
-  type KeyboardEvent,
-  type MouseEvent,
-} from 'react';
+import { memo, useCallback, type KeyboardEvent, type MouseEvent } from 'react';
 
 import {
   getDisplayGroupIndex,

@@ -1,4 +1,5 @@
 import { memo, useCallback } from 'react';
+import comicStyles from '../assets/styles/comic.css?inline';
 
 interface ModePickerDialogProps {
   onSelectMode: (mode: 'chapters' | 'images') => void;
@@ -16,36 +17,35 @@ export const ModePickerDialog = memo(function ModePickerDialog({
   }, [onSelectMode]);
 
   return (
-    <section
-      aria-label="Choose comic mode"
-      className="mode-picker-backdrop"
-      role="dialog"
-    >
-      <div className="mode-picker-dialog">
-        <h2>How should this folder open?</h2>
-        <p>
-          This folder contains a mix of items, so Comic Mode needs a hint before
-          it can continue.
-        </p>
-        <div className="mode-picker-actions">
-          <button
-            className="mode-picker-button"
-            onClick={handleSelectChapters}
-            type="button"
-          >
-            <strong>Chapter List</strong>
-            <span>Browse sub-folders first, then open a chapter reader.</span>
-          </button>
-          <button
-            className="mode-picker-button"
-            onClick={handleSelectImages}
-            type="button"
-          >
-            <strong>Direct Images</strong>
-            <span>Open the folder as a flat image list in the reader.</span>
-          </button>
-        </div>
+    <>
+      <style>{comicStyles}</style>
+      <div id="layers" aria-label="Choose comic mode" role="dialog" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', bottom: 0, zIndex: 99999 }}>
+        <article style={{ minHeight: 'auto', padding: '2rem 3rem', borderRadius: '4px', maxWidth: '45rem' }}>
+          <h2 style={{ marginTop: 0, marginBottom: '1rem', color: 'white', fontSize: '1.5rem' }}>How should this folder open?</h2>
+          <p style={{ color: '#ccc', fontSize: '0.9rem' }}>
+            This folder contains a mix of items, so Comic Mode needs a hint before
+            it can continue.
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem', flexWrap: 'wrap' }}>
+            <button
+              className="manga-link chapter"
+              onClick={handleSelectChapters}
+              type="button"
+            >
+              <span className="manga-link-chap">Chapter List</span>
+              <span className="manga-link-text">Browse sub-folders</span>
+            </button>
+            <button
+              className="manga-link chapter"
+              onClick={handleSelectImages}
+              type="button"
+            >
+              <span className="manga-link-chap">Direct Images</span>
+              <span className="manga-link-text">Open flat image list</span>
+            </button>
+          </div>
+        </article>
       </div>
-    </section>
+    </>
   );
 });

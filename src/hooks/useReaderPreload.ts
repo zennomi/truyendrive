@@ -12,9 +12,7 @@ interface UseReaderPreloadParams {
 }
 
 function getMaxPreloadDistance(preloadDistance: number, groupCount: number) {
-  return preloadDistance === 100
-    ? groupCount
-    : Math.max(preloadDistance, 1);
+  return preloadDistance === 100 ? groupCount : Math.max(preloadDistance, 1);
 }
 
 export function useReaderPreload({

@@ -161,9 +161,7 @@ export const ReaderArea = memo(function ReaderArea({
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     const wrapper =
       event.target instanceof Element
-        ? (event.target.closest(
-            '.ReaderImageWrapper',
-          ) as HTMLDivElement | null)
+        ? (event.target.closest('.ReaderImageWrapper') as HTMLDivElement | null)
         : null;
 
     pointerGestureRef.current = {
