@@ -157,11 +157,13 @@ export function useComicMode({
   const { accountData, error: authError, isLoading: isAuthLoading } = useAuth();
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [activeAuthUser, setActiveAuthUser] = useState<string | null>(null);
+  const [activeChapterIndex, setActiveChapterIndex] = useState(0);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [folderMode, setFolderMode] = useState<FolderMode>(null);
   const [imageIds, setImageIds] = useState<string[]>([]);
   const [isModePickerOpen, setIsModePickerOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [parentChapters, setParentChapters] = useState<Chapter[]>([]);
   const [statusMessage, setStatusMessage] = useState('Ready');
   const activeFetchIdRef = useRef(0);
   const chaptersRef = useRef<Chapter[]>([]);
@@ -182,6 +184,11 @@ export function useComicMode({
     setChapters(nextChapters);
   }, []);
 
+  const resetParentChapterState = useCallback(() => {
+    setActiveChapterIndex(0);
+    setParentChapters([]);
+  }, []);
+
   const resetReaderState = useCallback(
     (restoreHistoryUrl = false) => {
       cancelFetchLoop();
@@ -189,6 +196,7 @@ export function useComicMode({
       onResetUi();
       setActiveAuthUser(null);
       setActiveFolderId(null);
+      resetParentChapterState();
       replaceChapters([]);
       setFolderMode(null);
       setIsModePickerOpen(false);
@@ -197,7 +205,14 @@ export function useComicMode({
       setStatusMessage('Reader closed');
       resetHistoryState(restoreHistoryUrl);
     },
-    [cancelFetchLoop, onResetUi, replaceChapters, replaceImageIds, resetHistoryState],
+    [
+      cancelFetchLoop,
+      onResetUi,
+      replaceChapters,
+      replaceImageIds,
+      resetHistoryState,
+      resetParentChapterState,
+    ],
   );
 
   const closeComicMode = useCallback(() => {
@@ -221,6 +236,7 @@ export function useComicMode({
     firstPageCacheRef.current = null;
     setActiveAuthUser(getAuthUser());
     setActiveFolderId(folderId);
+    resetParentChapterState();
     replaceChapters([]);
     setFolderMode(null);
     setIsModePickerOpen(false);
@@ -241,13 +257,20 @@ export function useComicMode({
     isAuthLoading,
     replaceChapters,
     replaceImageIds,
+    resetParentChapterState,
   ]);
 
   const openChapter = useCallback(
-    (chapterId: string) => {
+    (
+      chapterId: string,
+      nextParentChapters: Chapter[] = [],
+      nextActiveChapterIndex = 0,
+    ) => {
       cancelFetchLoop();
       firstPageCacheRef.current = null;
       setActiveFolderId(chapterId);
+      setActiveChapterIndex(nextActiveChapterIndex);
+      setParentChapters(nextParentChapters);
       replaceChapters([]);
       setFolderMode('images');
       setIsModePickerOpen(false);
@@ -258,6 +281,41 @@ export function useComicMode({
     [cancelFetchLoop, replaceChapters, replaceImageIds],
   );
 
+  const goToChapterAtIndex = useCallback(
+    (index: number) => {
+      if (parentChapters.length === 0) {
+        return;
+      }
+
+      const nextIndex = Math.min(
+        Math.max(index, 0),
+        parentChapters.length - 1,
+      );
+      const targetChapter = parentChapters[nextIndex];
+      if (!targetChapter) {
+        return;
+      }
+
+      if (targetChapter.id === activeFolderId && nextIndex === activeChapterIndex) {
+        return;
+      }
+
+      openChapter(targetChapter.id, parentChapters, nextIndex);
+    },
+    [activeChapterIndex, activeFolderId, openChapter, parentChapters],
+  );
+
+  const goToAdjacentChapter = useCallback(
+    (delta: -1 | 1) => {
+      if (parentChapters.length <= 1) {
+        return;
+      }
+
+      goToChapterAtIndex(activeChapterIndex + delta);
+    },
+    [activeChapterIndex, goToChapterAtIndex, parentChapters.length],
+  );
+
   const selectMode = useCallback(
     (mode: 'chapters' | 'images') => {
       const cachedPage = firstPageCacheRef.current;
@@ -265,6 +323,7 @@ export function useComicMode({
         return;
       }
 
+      resetParentChapterState();
       replaceChapters([]);
       replaceImageIds([]);
       setFolderMode(mode);
@@ -274,7 +333,7 @@ export function useComicMode({
         mode === 'chapters' ? 'Loading chapters...' : 'Loading pages...',
       );
     },
-    [activeFolderId, replaceChapters, replaceImageIds],
+    [activeFolderId, replaceChapters, replaceImageIds, resetParentChapterState],
   );
 
   useEffect(() => {
@@ -499,14 +558,18 @@ export function useComicMode({
   );
 
   return {
+    activeChapterIndex,
     chapters,
     closeComicMode,
     folderMode,
+    goToAdjacentChapter,
+    goToChapterAtIndex,
     imageIds,
     isModePickerOpen,
     isOpen,
     openChapter,
     openComicMode,
+    parentChapters,
     resetReaderState,
     selectMode,
     statusMessage,

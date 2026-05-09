@@ -1,3 +1,4 @@
+import type { Chapter, FolderMode } from '../hooks/useComicMode';
 import {
   DIRECTION_OPTIONS,
   FIT_OPTIONS,
@@ -33,13 +34,18 @@ type ToggleSetting = <
 interface ReaderSidebarProps {
   activeGroup: ReaderGroup | undefined;
   activeGroupIndex: number;
+  activeChapterIndex: number;
   activePage: number;
   activePageNumber: number;
   closeComicMode: () => void;
   cycleSetting: CycleSetting;
   displayGroups: ReaderGroup[];
+  folderMode: FolderMode;
+  goToAdjacentChapter: (delta: -1 | 1) => void;
   goToAdjacentGroup: (delta: number) => void;
+  goToChapterAtIndex: (index: number) => void;
   imageIds: string[];
+  parentChapters: Chapter[];
   readerTitle: string;
   scrollToGroup: (index: number, behavior?: ScrollBehavior) => void;
   setIsSettingsOpen: (open: boolean) => void;
@@ -52,13 +58,18 @@ interface ReaderSidebarProps {
 export function ReaderSidebar({
   activeGroup,
   activeGroupIndex,
+  activeChapterIndex,
   activePage,
   activePageNumber,
   closeComicMode,
   cycleSetting,
   displayGroups,
+  folderMode,
+  goToAdjacentChapter,
   goToAdjacentGroup,
+  goToChapterAtIndex,
   imageIds,
+  parentChapters,
   readerTitle,
   scrollToGroup,
   setIsSettingsOpen,
@@ -67,6 +78,19 @@ export function ReaderSidebar({
   statusMessage,
   toggleSetting,
 }: ReaderSidebarProps) {
+  const hasAdjacentChapters = parentChapters.length > 1;
+  const isAtFirstGroup = activeGroupIndex === 0;
+  const isAtLastGroup =
+    displayGroups.length > 0 && activeGroupIndex === displayGroups.length - 1;
+  const isImagesMode = folderMode === 'images';
+  const chapterSelectorLabel = isImagesMode
+    ? parentChapters.length > 0
+      ? (parentChapters[activeChapterIndex]?.name ?? 'Unknown chapter')
+      : 'Chapter 1'
+    : activeGroup
+      ? pageLabel(activeGroup)
+      : '0';
+
   return (
     <aside className="">
       <div
@@ -146,31 +170,65 @@ export function ReaderSidebar({
             <button
               className="rdr-selector-chap ico-btn prev"
               data-tip="Previous chapter [[]"
-              onClick={() => goToAdjacentGroup(-1)}
+              onClick={() => {
+                if (isAtFirstGroup && hasAdjacentChapters) {
+                  goToAdjacentChapter(-1);
+                  return;
+                }
+
+                goToAdjacentGroup(-1);
+              }}
               type="button"
             />
             <div className="rdr-vol-wrap UI FauxDrop">
-              <label>{activeGroup ? pageLabel(activeGroup) : '0'}</label>
+              <label>{chapterSelectorLabel}</label>
               <select
                 className="UI List SimpleList"
+                disabled={isImagesMode && parentChapters.length === 0}
                 id="rdr-vol"
                 onChange={(event) => {
                   const nextIndex = Number.parseInt(event.target.value, 10);
-                  if (!Number.isNaN(nextIndex)) {
+                  if (Number.isNaN(nextIndex)) {
+                    return;
+                  }
+
+                  if (isImagesMode) {
+                    if (parentChapters.length > 0) {
+                      goToChapterAtIndex(nextIndex);
+                    }
+                  } else {
                     scrollToGroup(nextIndex);
                   }
                 }}
-                value={String(activeGroupIndex)}
+                value={String(isImagesMode ? activeChapterIndex : activeGroupIndex)}
               >
-                {displayGroups.map((group, index) => (
-                  <option
-                    className="UI SimpleListItem"
-                    key={group.id}
-                    value={String(index)}
-                  >
-                    {pageLabel(group)}
-                  </option>
-                ))}
+                {isImagesMode ? (
+                  parentChapters.length > 0 ? (
+                    parentChapters.map((chapter, index) => (
+                      <option
+                        className="UI SimpleListItem"
+                        key={chapter.id}
+                        value={String(index)}
+                      >
+                        {chapter.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option className="UI SimpleListItem" value="0">
+                      Chapter 1
+                    </option>
+                  )
+                ) : (
+                  displayGroups.map((group, index) => (
+                    <option
+                      className="UI SimpleListItem"
+                      key={group.id}
+                      value={String(index)}
+                    >
+                      {pageLabel(group)}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
             <div className="rdr-chap-wrap UI FauxDrop">
@@ -206,7 +264,14 @@ export function ReaderSidebar({
             <button
               className="rdr-selector-chap ico-btn next"
               data-tip="Next chapter []]"
-              onClick={() => goToAdjacentGroup(1)}
+              onClick={() => {
+                if (isAtLastGroup && hasAdjacentChapters) {
+                  goToAdjacentChapter(1);
+                  return;
+                }
+
+                goToAdjacentGroup(1);
+              }}
               type="button"
             />
           </div>

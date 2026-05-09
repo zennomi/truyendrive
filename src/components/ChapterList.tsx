@@ -7,7 +7,7 @@ const Content = 'content' as any;
 interface ChapterListProps {
   chapters: Chapter[];
   onClose: () => void;
-  onSelectChapter: (chapterId: string) => void;
+  onSelectChapter: (chapterId: string, index: number) => void;
   statusMessage: string;
   title: string;
 }
@@ -30,9 +30,11 @@ export function ChapterList({
   const [search, setSearch] = useState('');
   const isLoading = statusMessage.includes('Loading');
 
-  const filteredChapters = chapters.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredChapters = chapters
+    .map((chapter, index) => ({ chapter, index }))
+    .filter(({ chapter }) =>
+      chapter.name.toLowerCase().includes(search.toLowerCase()),
+    );
 
   return (
     <>
@@ -88,7 +90,10 @@ export function ChapterList({
                 onClick={(e) => {
                   e.preventDefault();
                   if (chapters.length > 0)
-                    onSelectChapter(chapters[chapters.length - 1].id);
+                    onSelectChapter(
+                      chapters[chapters.length - 1].id,
+                      chapters.length - 1,
+                    );
                 }}
               >
                 <span className="manga-link-chap"></span>
@@ -117,7 +122,10 @@ export function ChapterList({
                 onClick={(e) => {
                   e.preventDefault();
                   if (chapters.length > 0)
-                    onSelectChapter(chapters[chapters.length - 1].id);
+                    onSelectChapter(
+                      chapters[chapters.length - 1].id,
+                      chapters.length - 1,
+                    );
                 }}
               >
                 <span className="manga-link-chap"></span>
@@ -157,7 +165,7 @@ export function ChapterList({
                     </td>
                   </tr>
                 )}
-                {filteredChapters.map((chapter) => (
+                {filteredChapters.map(({ chapter, index }) => (
                   <tr
                     className="table-default is-read"
                     data-chapter={chapter.name}
@@ -169,7 +177,7 @@ export function ChapterList({
                         href="#"
                         onClick={(e) => {
                           e.preventDefault();
-                          onSelectChapter(chapter.id);
+                          onSelectChapter(chapter.id, index);
                         }}
                       >
                         {chapter.name}

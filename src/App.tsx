@@ -102,14 +102,18 @@ function App() {
   });
 
   const {
+    activeChapterIndex,
     chapters,
     closeComicMode,
     folderMode,
+    goToAdjacentChapter,
+    goToChapterAtIndex,
     imageIds,
     isModePickerOpen,
     isOpen,
     openChapter,
     openComicMode,
+    parentChapters,
     resetReaderState,
     selectMode,
     statusMessage,
@@ -130,6 +134,10 @@ function App() {
   const activePage = displayGroups[activeGroupIndex]?.pages[0]?.index ?? 0;
   const activePageNumber = imageIds.length === 0 ? 0 : activePage + 1;
   const activeGroup = displayGroups[activeGroupIndex];
+  const hasAdjacentChapters = parentChapters.length > 1;
+  const isAtFirstGroup = activeGroupIndex === 0;
+  const isAtLastGroup =
+    displayGroups.length > 0 && activeGroupIndex === displayGroups.length - 1;
   const supportsZoomOverlay =
     settings.lyt.fit === 'width' || settings.lyt.fit === 'width_limit';
   const isComicSurfaceOpen =
@@ -204,6 +212,95 @@ function App() {
         : false;
     },
     [displayGroups, loadedPageIds],
+  );
+
+  const goToChapterAtIndexFromReader = useCallback(
+    (index: number) => {
+      currentPageRef.current = 0;
+      goToChapterAtIndex(index);
+    },
+    [goToChapterAtIndex],
+  );
+
+  const goToAdjacentChapterFromReader = useCallback(
+    (delta: -1 | 1) => {
+      currentPageRef.current = 0;
+      goToAdjacentChapter(delta);
+    },
+    [goToAdjacentChapter],
+  );
+
+  const navigateGroupOrChapter = useCallback(
+    (delta: -1 | 1) => {
+      if (displayGroups.length === 0) {
+        return;
+      }
+
+      if (delta === -1 && isAtFirstGroup && hasAdjacentChapters) {
+        goToAdjacentChapterFromReader(-1);
+        return;
+      }
+
+      if (delta === 1 && isAtLastGroup && hasAdjacentChapters) {
+        goToAdjacentChapterFromReader(1);
+        return;
+      }
+
+      goToAdjacentGroup(delta);
+    },
+    [
+      displayGroups.length,
+      goToAdjacentChapterFromReader,
+      goToAdjacentGroup,
+      hasAdjacentChapters,
+      isAtFirstGroup,
+      isAtLastGroup,
+    ],
+  );
+
+  const performVerticalPageTurnOrChapter = useCallback(
+    (direction: 1 | -1) => {
+      const scroller = imageWrapRef.current;
+      if (!scroller) {
+        return;
+      }
+
+      const maxScrollTop = Math.max(
+        scroller.scrollHeight - scroller.clientHeight,
+        0,
+      );
+      const isAtTop = scroller.scrollTop <= 1;
+      const isAtBottom = maxScrollTop - scroller.scrollTop <= 1;
+
+      if (
+        direction === -1 &&
+        isAtTop &&
+        isAtFirstGroup &&
+        hasAdjacentChapters
+      ) {
+        goToAdjacentChapterFromReader(-1);
+        return;
+      }
+
+      if (
+        direction === 1 &&
+        isAtBottom &&
+        isAtLastGroup &&
+        hasAdjacentChapters
+      ) {
+        goToAdjacentChapterFromReader(1);
+        return;
+      }
+
+      performVerticalPageTurn(direction);
+    },
+    [
+      goToAdjacentChapterFromReader,
+      hasAdjacentChapters,
+      isAtFirstGroup,
+      isAtLastGroup,
+      performVerticalPageTurn,
+    ],
   );
 
   const syncWideGroupState = useEffectEvent(() => {
@@ -320,13 +417,13 @@ function App() {
 
       if (settings.bhv.arrowTurnPage && event.key === 'ArrowRight') {
         event.preventDefault();
-        goToAdjacentGroup(1);
+        navigateGroupOrChapter(1);
         return;
       }
 
       if (settings.bhv.arrowTurnPage && event.key === 'ArrowLeft') {
         event.preventDefault();
-        goToAdjacentGroup(-1);
+        navigateGroupOrChapter(-1);
       }
 
       return;
@@ -334,13 +431,13 @@ function App() {
 
     if (event.key === 'ArrowRight') {
       event.preventDefault();
-      goToAdjacentGroup(settings.lyt.direction === 'rtl' ? -1 : 1);
+      navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? -1 : 1);
       return;
     }
 
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
-      goToAdjacentGroup(settings.lyt.direction === 'rtl' ? 1 : -1);
+      navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? 1 : -1);
     }
   });
 
@@ -445,7 +542,10 @@ function App() {
           <ChapterList
             chapters={chapters}
             onClose={resetReaderState}
-            onSelectChapter={openChapter}
+            onSelectChapter={(chapterId, index) => {
+              currentPageRef.current = 0;
+              openChapter(chapterId, chapters, index);
+            }}
             statusMessage={statusMessage}
             title={readerTitle}
           />
@@ -466,14 +566,19 @@ function App() {
           >
             <ReaderSidebar
               activeGroup={activeGroup}
+              activeChapterIndex={activeChapterIndex}
               activeGroupIndex={activeGroupIndex}
               activePage={activePage}
               activePageNumber={activePageNumber}
               closeComicMode={closeComicMode}
               cycleSetting={cycleSetting}
               displayGroups={displayGroups}
+              folderMode={folderMode}
+              goToAdjacentChapter={goToAdjacentChapterFromReader}
               goToAdjacentGroup={goToAdjacentGroup}
+              goToChapterAtIndex={goToChapterAtIndexFromReader}
               imageIds={imageIds}
+              parentChapters={parentChapters}
               readerTitle={readerTitle}
               scrollToGroup={scrollToGroup}
               setIsSettingsOpen={setIsSettingsOpen}
@@ -495,13 +600,13 @@ function App() {
 
             <ReaderArea
               displayGroups={displayGroups}
-              goToAdjacentGroup={goToAdjacentGroup}
               groupRefs={groupRefs}
               hoverEdge={hoverEdge}
               imageWrapRef={imageWrapRef}
               isGroupPreloaded={isGroupPreloaded}
+              navigateGroupOrChapter={navigateGroupOrChapter}
               onPageLoad={handlePageLoad}
-              performVerticalPageTurn={performVerticalPageTurn}
+              performVerticalPageTurnOrChapter={performVerticalPageTurnOrChapter}
               preloadImageRefs={preloadImageRefs}
               setHoverEdge={setHoverEdge}
               setImageLoadVersion={setImageLoadVersion}

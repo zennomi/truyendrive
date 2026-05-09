@@ -10,13 +10,13 @@ import type { ReaderSettings } from '../useSettings';
 
 interface ReaderAreaProps {
   displayGroups: ReaderGroup[];
-  goToAdjacentGroup: (delta: number) => void;
   groupRefs: RefObject<Array<HTMLDivElement | null>>;
   hoverEdge: 'next' | 'prev' | null;
   imageWrapRef: RefObject<HTMLDivElement | null>;
   isGroupPreloaded: (index: number) => boolean;
+  navigateGroupOrChapter: (delta: -1 | 1) => void;
   onPageLoad: (pageId: string) => void;
-  performVerticalPageTurn: (direction: 1 | -1) => void;
+  performVerticalPageTurnOrChapter: (direction: 1 | -1) => void;
   preloadImageRefs: RefObject<Array<HTMLImageElement | null>>;
   setHoverEdge: (edge: 'next' | 'prev' | null) => void;
   setImageLoadVersion: (fn: (version: number) => number) => void;
@@ -44,13 +44,13 @@ function createIdlePointerGestureState(): PointerGestureState {
 
 export function ReaderArea({
   displayGroups,
-  goToAdjacentGroup,
   groupRefs,
   hoverEdge,
   imageWrapRef,
   isGroupPreloaded,
+  navigateGroupOrChapter,
   onPageLoad,
-  performVerticalPageTurn,
+  performVerticalPageTurnOrChapter,
   preloadImageRefs,
   setHoverEdge,
   setImageLoadVersion,
@@ -85,12 +85,12 @@ export function ReaderArea({
           const verticalRatio = (event.clientY - bounds.top) / bounds.height;
 
           if (verticalRatio < 0.35) {
-            performVerticalPageTurn(-1);
+            performVerticalPageTurnOrChapter(-1);
             return;
           }
 
           if (verticalRatio > 0.65) {
-            performVerticalPageTurn(1);
+            performVerticalPageTurnOrChapter(1);
             return;
           }
 
@@ -99,9 +99,9 @@ export function ReaderArea({
         }
 
         if (ratio < 0.35) {
-          goToAdjacentGroup(settings.lyt.direction === 'rtl' ? 1 : -1);
+          navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? 1 : -1);
         } else if (ratio > 0.65) {
-          goToAdjacentGroup(settings.lyt.direction === 'rtl' ? -1 : 1);
+          navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? -1 : 1);
         } else {
           showPageSelector();
         }
@@ -244,11 +244,11 @@ export function ReaderArea({
           }
 
           if (deltaX < 0) {
-            goToAdjacentGroup(settings.lyt.direction === 'rtl' ? -1 : 1);
+            navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? -1 : 1);
             return;
           }
 
-          goToAdjacentGroup(settings.lyt.direction === 'rtl' ? 1 : -1);
+          navigateGroupOrChapter(settings.lyt.direction === 'rtl' ? 1 : -1);
         }}
         onScroll={syncActiveGroupFromScroll}
         ref={imageWrapRef}
