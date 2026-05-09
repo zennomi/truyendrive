@@ -9,14 +9,20 @@ export default defineConfig({
     monkey({
       entry: 'src/main.tsx',
       userscript: {
-        name: 'Google Drive Comic Reader',
+        name: 'TruyenDrive',
         namespace: 'http://tampermonkey.net/',
         version: '1.0',
-        description:
-          'Displays images in a Google Drive folder as a long strip comic reader',
-        author: 'Gemini',
+        description: 'Best Comic Reader for Google Drive',
+        author: 'Zennomi',
         match: ['https://drive.google.com/drive/*'],
-        icon: 'https://vitejs.dev/logo.svg',
+        icon: 'https://raw.githubusercontent.com/zennomi/truyendrive/main/src/assets/truyendrive.webp',
+        updateURL:
+          'https://raw.githubusercontent.com/zennomi/truyendrive/release/truyendrive-userscript.meta.js',
+        downloadURL:
+          'https://raw.githubusercontent.com/zennomi/truyendrive/release/truyendrive-userscript.user.js',
+      },
+      build: {
+        metaFileName: true,
       },
     }),
   ],
