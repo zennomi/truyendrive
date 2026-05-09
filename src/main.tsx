@@ -2,9 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { AuthProvider } from './contexts/AuthContext';
-import readerStyles from './reader.css?inline';
-import shadowStyles from './index.css?inline';
-import fontStyles from './font.css?inline';
+import shadowStyles from './assets/styles/index.css?inline';
+import fontStyles from './assets/styles/font.css?inline';
 
 // 1. Extract and inject the font-face globally into the document <head>
 const globalStyle = document.createElement('style');
@@ -21,7 +20,6 @@ shadowRoot.append(mountNode);
 
 ReactDOM.createRoot(mountNode).render(
   <React.StrictMode>
-    <style>{readerStyles}</style>
     <style>{shadowStyles}</style>
     <AuthProvider>
       <App />
