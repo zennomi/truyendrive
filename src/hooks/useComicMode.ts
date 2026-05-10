@@ -15,7 +15,9 @@ import {
 } from '../lib/driveApi';
 
 interface UseComicModeParams {
-  beginReaderSession: () => void;
+  beginReaderSession: (initialPage?: number) => void;
+  initialChapterId?: string | null;
+  initialPage?: number;
   onResetUi: () => void;
   resetHistoryState: (restoreHistoryUrl: boolean) => void;
 }
@@ -204,6 +206,8 @@ function mergeChapters(currentChapters: Chapter[], nextChapters: Chapter[]) {
 
 export function useComicMode({
   beginReaderSession,
+  initialChapterId = null,
+  initialPage = -1,
   onResetUi,
   resetHistoryState,
 }: UseComicModeParams) {
@@ -217,6 +221,10 @@ export function useComicMode({
   );
   const [folderMode, setFolderMode] = useState<FolderMode>(null);
   const [imageIds, setImageIds] = useState<string[]>([]);
+  const [isAutoOpening, setIsAutoOpening] = useState(
+    initialChapterId !== null || initialPage >= 0,
+  );
+  const [isFolderScanComplete, setIsFolderScanComplete] = useState(false);
   const [isModePickerOpen, setIsModePickerOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [parentChapters, setParentChapters] = useState<Chapter[]>([]);
@@ -225,6 +233,10 @@ export function useComicMode({
   const chaptersRef = useRef<Chapter[]>([]);
   const firstPageCacheRef = useRef<FirstPageCache | null>(null);
   const imageIdsRef = useRef<string[]>([]);
+  const initialChapterIdRef = useRef(initialChapterId);
+  const initialPageRef = useRef(initialPage);
+  const initialReaderOpenAttemptedRef = useRef(false);
+  const initialChapterOpenAttemptedRef = useRef(false);
 
   const cancelFetchLoop = useCallback(() => {
     activeFetchIdRef.current += 1;
@@ -256,6 +268,8 @@ export function useComicMode({
       replaceChapters([]);
       setFolderDetails(null);
       setFolderMode(null);
+      setIsAutoOpening(false);
+      setIsFolderScanComplete(false);
       setIsModePickerOpen(false);
       replaceImageIds([]);
       setIsOpen(false);
@@ -273,7 +287,7 @@ export function useComicMode({
   );
 
   const closeComicMode = useCallback(() => {
-    resetReaderState(false);
+    resetReaderState(true);
   }, [resetReaderState]);
 
   const getOpenStatusMessage = useEffectEvent(() => {
@@ -288,34 +302,57 @@ export function useComicMode({
     return authError?.message ?? 'Loading account...';
   });
 
-  const openComicMode = useCallback(() => {
-    const folderId = getFolderIdFromUrl();
-    if (!folderId) {
-      window.alert('No Google Drive folder ID found in the current URL.');
+  const openComicMode = useCallback(
+    (restorePage = -1) => {
+      const folderId = getFolderIdFromUrl();
+      if (!folderId) {
+        window.alert('No Google Drive folder ID found in the current URL.');
+        return;
+      }
+
+      beginReaderSession(restorePage);
+      cancelFetchLoop();
+      firstPageCacheRef.current = null;
+      setActiveAuthUser(getAuthUser());
+      setActiveFolderId(folderId);
+      resetParentChapterState();
+      replaceChapters([]);
+      setFolderDetails(null);
+      setFolderMode(null);
+      setIsFolderScanComplete(false);
+      setIsModePickerOpen(false);
+      replaceImageIds([]);
+      setIsOpen(false);
+      setStatusMessage(getOpenStatusMessage());
+    },
+    [
+      beginReaderSession,
+      cancelFetchLoop,
+      getOpenStatusMessage,
+      replaceChapters,
+      replaceImageIds,
+      resetParentChapterState,
+    ],
+  );
+
+  useEffect(() => {
+    if (initialReaderOpenAttemptedRef.current) {
       return;
     }
 
-    beginReaderSession();
-    cancelFetchLoop();
-    firstPageCacheRef.current = null;
-    setActiveAuthUser(getAuthUser());
-    setActiveFolderId(folderId);
-    resetParentChapterState();
-    replaceChapters([]);
-    setFolderDetails(null);
-    setFolderMode(null);
-    setIsModePickerOpen(false);
-    replaceImageIds([]);
-    setIsOpen(false);
-    setStatusMessage(getOpenStatusMessage());
-  }, [
-    beginReaderSession,
-    cancelFetchLoop,
-    getOpenStatusMessage,
-    replaceChapters,
-    replaceImageIds,
-    resetParentChapterState,
-  ]);
+    if (!initialChapterIdRef.current && initialPageRef.current < 0) {
+      setIsAutoOpening(false);
+      return;
+    }
+
+    if (!getFolderIdFromUrl()) {
+      setIsAutoOpening(false);
+      return;
+    }
+
+    initialReaderOpenAttemptedRef.current = true;
+    openComicMode(initialPageRef.current);
+  }, [openComicMode]);
 
   const openChapter = useCallback(
     (
@@ -330,6 +367,7 @@ export function useComicMode({
       setParentChapters(nextParentChapters);
       replaceChapters([]);
       setFolderMode('images');
+      setIsFolderScanComplete(false);
       setIsModePickerOpen(false);
       replaceImageIds([]);
       setIsOpen(true);
@@ -384,6 +422,7 @@ export function useComicMode({
       replaceChapters([]);
       replaceImageIds([]);
       setFolderMode(mode);
+      setIsFolderScanComplete(false);
       setIsModePickerOpen(false);
       setIsOpen(false);
       setStatusMessage(
@@ -404,6 +443,7 @@ export function useComicMode({
     }
 
     if (!accountData) {
+      setIsAutoOpening(false);
       setStatusMessage(authError?.message ?? 'Failed to load account');
       return;
     }
@@ -420,6 +460,7 @@ export function useComicMode({
       let cursor = initialCursor;
 
       setIsOpen(true);
+      setIsAutoOpening(false);
 
       while (!isCancelled && activeFetchIdRef.current === fetchId) {
         const mergedIds = mergeImageIds(
@@ -433,6 +474,7 @@ export function useComicMode({
 
         const pageCount = mergedIds.length;
         if (!cursor) {
+          setIsFolderScanComplete(true);
           setStatusMessage(
             pageCount === 0
               ? 'No image files found in this folder'
@@ -471,6 +513,7 @@ export function useComicMode({
       let cursor = initialCursor;
 
       setIsOpen(false);
+      setIsFolderScanComplete(false);
       setFolderDetails(null);
 
       void fetchFolderDetails(activeFolderId, accountData, activeAuthUser)
@@ -501,6 +544,7 @@ export function useComicMode({
 
         const chapterCount = mergedChapters.length;
         if (!cursor) {
+          setIsFolderScanComplete(true);
           setStatusMessage(
             chapterCount === 0
               ? 'No chapter folders found in this folder'
@@ -571,6 +615,8 @@ export function useComicMode({
 
           if (classification === 'empty') {
             firstPageCacheRef.current = null;
+            setIsAutoOpening(false);
+            setIsFolderScanComplete(true);
             setStatusMessage('No files found in this folder');
             return;
           }
@@ -582,6 +628,25 @@ export function useComicMode({
           };
 
           if (classification === 'mixed') {
+            if (initialChapterIdRef.current || initialPageRef.current >= 0) {
+              const initialMode =
+                initialChapterIdRef.current &&
+                initialChapterIdRef.current !== activeFolderId
+                  ? 'chapters'
+                  : 'images';
+
+              setIsModePickerOpen(false);
+              setFolderMode(initialMode);
+              setStatusMessage(
+                initialMode === 'chapters'
+                  ? 'Loading chapters...'
+                  : 'Loading pages...',
+              );
+              return;
+            }
+
+            setIsAutoOpening(false);
+            setIsFolderScanComplete(true);
             setIsModePickerOpen(true);
             setStatusMessage('Choose how to open this folder');
             return;
@@ -589,6 +654,7 @@ export function useComicMode({
 
           setIsModePickerOpen(false);
           setFolderMode(classification);
+          setIsFolderScanComplete(false);
           setStatusMessage(
             classification === 'chapters'
               ? 'Loading chapters...'
@@ -607,6 +673,7 @@ export function useComicMode({
           return;
         }
 
+        setIsAutoOpening(false);
         setStatusMessage(
           error instanceof Error
             ? error.message
@@ -634,6 +701,42 @@ export function useComicMode({
     replaceImageIds,
   ]);
 
+  useEffect(() => {
+    const targetChapterId = initialChapterIdRef.current;
+    if (
+      !targetChapterId ||
+      initialChapterOpenAttemptedRef.current ||
+      folderMode !== 'chapters' ||
+      !isFolderScanComplete ||
+      isOpen
+    ) {
+      return;
+    }
+
+    const chapterIndex = chapters.findIndex(
+      (chapter) => chapter.id === targetChapterId,
+    );
+
+    if (chapterIndex === -1) {
+      setIsAutoOpening(false);
+      return;
+    }
+
+    initialChapterOpenAttemptedRef.current = true;
+    setIsAutoOpening(false);
+    openChapter(targetChapterId, chapters, chapterIndex);
+  }, [chapters, folderMode, isFolderScanComplete, isOpen, openChapter]);
+
+  useEffect(() => {
+    if (!isAutoOpening || !isFolderScanComplete || isOpen) {
+      return;
+    }
+
+    if (!initialChapterIdRef.current || folderMode !== 'chapters') {
+      setIsAutoOpening(false);
+    }
+  }, [folderMode, isAutoOpening, isFolderScanComplete, isOpen]);
+
   useEffect(
     () => () => {
       cancelFetchLoop();
@@ -642,6 +745,7 @@ export function useComicMode({
   );
 
   return {
+    activeFolderId,
     activeChapterIndex,
     chapters,
     closeComicMode,
@@ -650,6 +754,7 @@ export function useComicMode({
     goToAdjacentChapter,
     goToChapterAtIndex,
     imageIds,
+    isAutoOpening,
     isModePickerOpen,
     isOpen,
     openChapter,

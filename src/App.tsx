@@ -22,11 +22,15 @@ import {
   getChapterStartGroupIndex,
   getLogicalGroupIndex,
   getRootClasses,
+  parseReaderStateFromUrl,
 } from './lib/readerUtils';
 import { getThemeStyle, useSettings } from './useSettings';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 
 function AppContent() {
+  const [initialReaderState] = useState(() =>
+    parseReaderStateFromUrl(window.location.href),
+  );
   const {
     settings,
     cycleSetting,
@@ -61,6 +65,7 @@ function AppContent() {
   });
 
   const {
+    activeFolderId,
     activeChapterIndex,
     chapters,
     closeComicMode,
@@ -69,6 +74,7 @@ function AppContent() {
     goToAdjacentChapter,
     goToChapterAtIndex,
     imageIds,
+    isAutoOpening,
     isModePickerOpen,
     isOpen,
     openChapter,
@@ -79,6 +85,8 @@ function AppContent() {
     statusMessage,
   } = useComicMode({
     beginReaderSession,
+    initialChapterId: initialReaderState.chapterId,
+    initialPage: initialReaderState.page,
     onResetUi: resetReaderUi,
     resetHistoryState,
   });
@@ -114,6 +122,8 @@ function AppContent() {
     folderDetails?.title ||
     parentChapters[activeChapterIndex]?.name ||
     'Google Drive Comic Reader';
+  const activeChapterId =
+    parentChapters[activeChapterIndex]?.id ?? activeFolderId;
 
   const {
     goToAdjacentGroup,
@@ -140,6 +150,7 @@ function AppContent() {
   });
 
   const { handlePopState } = useReaderHistory({
+    activeChapterId,
     activePage,
     currentPageRef,
     displayGroups,
@@ -339,19 +350,19 @@ function AppContent() {
     <>
       <button
         className="truyendrive-launcher"
-        onClick={openComicMode}
+        onClick={() => openComicMode()}
         type="button"
       >
         <span className="launcher-icon">📖</span>
         <span className="launcher-text">TruyenDrive</span>
       </button>
 
-      {folderMode === 'chapters' && !isOpen && (
+      {folderMode === 'chapters' && !isOpen && !isAutoOpening && (
         <main id="rdr-main" style={themeStyle as CSSProperties} tabIndex={-1}>
           <ChapterList
             chapters={chapters}
             folderDetails={folderDetails}
-            onClose={resetReaderState}
+            onClose={() => resetReaderState(true)}
             onSelectChapter={handleSelectChapter}
             statusMessage={statusMessage}
             title={readerTitle}
@@ -359,7 +370,9 @@ function AppContent() {
         </main>
       )}
 
-      {isModePickerOpen && <ModePickerDialog onSelectMode={selectMode} />}
+      {isModePickerOpen && !isAutoOpening && (
+        <ModePickerDialog onSelectMode={selectMode} />
+      )}
 
       {isOpen && (
         <>

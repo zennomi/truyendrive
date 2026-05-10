@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, type MutableRefObject } from 'react';
 
 import {
+  buildChapterStateUrl,
   buildPageTitle,
   buildReaderHistoryUrl,
   clampIndex,
@@ -12,6 +13,7 @@ import {
 import type { ReaderSettings } from '../useSettings';
 
 interface UseReaderHistoryParams {
+  activeChapterId: string | null;
   activePage: number;
   currentPageRef: MutableRefObject<number>;
   displayGroups: ReaderGroup[];
@@ -26,6 +28,7 @@ interface UseReaderHistoryParams {
 }
 
 export function useReaderHistory({
+  activeChapterId,
   activePage,
   currentPageRef,
   displayGroups,
@@ -83,7 +86,9 @@ export function useReaderHistory({
       page: activePage,
       truyendriveReader: true,
     };
-    const nextUrl = buildReaderHistoryUrl(window.location.href, activePage);
+    const nextUrl = activeChapterId
+      ? buildChapterStateUrl(window.location.href, activeChapterId, activePage)
+      : buildReaderHistoryUrl(window.location.href, activePage);
 
     const previousPage = historyPageRef.current;
     switch (settings.bhv.historyUpdate) {
@@ -113,6 +118,7 @@ export function useReaderHistory({
     document.title = title;
   }, [
     activePage,
+    activeChapterId,
     displayGroups,
     historyPageRef,
     isHandlingPopStateRef,

@@ -16,6 +16,11 @@ export type ReaderHistoryState = {
   truyendriveReader: true;
 };
 
+export type ReaderUrlState = {
+  chapterId: string | null;
+  page: number;
+};
+
 export type PointerGestureState = {
   active: boolean;
   dragged: boolean;
@@ -27,6 +32,9 @@ export type PointerGestureState = {
 };
 
 export const READER_HISTORY_HASH = 'truyendrive-page';
+export const READER_STATE_HASH_PREFIX = 'truyendrive-chap';
+export const READER_PAGE_SEARCH_PARAM = 'truyendrive-page';
+export const READER_CHAPTER_SEARCH_PARAM = 'truyendrive-chap';
 
 export function buildPageGroups(
   imageIds: string[],
@@ -146,8 +154,76 @@ export function buildPageTitle(title: string, pageIndex: number) {
 
 export function buildReaderHistoryUrl(baseUrl: string, pageIndex: number) {
   const url = new URL(baseUrl);
-  url.hash = `${READER_HISTORY_HASH}-${pageIndex + 1}`;
+  url.searchParams.delete(READER_CHAPTER_SEARCH_PARAM);
+  url.searchParams.set(READER_PAGE_SEARCH_PARAM, `${pageIndex + 1}`);
+  url.hash = '';
   return url.toString();
+}
+
+export function buildChapterStateUrl(
+  baseUrl: string,
+  chapterId: string,
+  pageIndex: number,
+) {
+  const url = new URL(baseUrl);
+  url.searchParams.set(READER_CHAPTER_SEARCH_PARAM, chapterId);
+  url.searchParams.set(READER_PAGE_SEARCH_PARAM, `${pageIndex + 1}`);
+  url.hash = '';
+  return url.toString();
+}
+
+export function parseReaderStateFromUrl(url: string): ReaderUrlState {
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return { chapterId: null, page: -1 };
+  }
+
+  const searchPage = parsedUrl.searchParams.get(READER_PAGE_SEARCH_PARAM);
+  if (searchPage) {
+    const parsedPage = Number.parseInt(searchPage, 10);
+    return {
+      chapterId: parsedUrl.searchParams.get(READER_CHAPTER_SEARCH_PARAM),
+      page: Number.isNaN(parsedPage) ? -1 : Math.max(parsedPage - 1, 0),
+    };
+  }
+
+  const hash = parsedUrl.hash.slice(1);
+  const pageOnlyMatch = hash.match(
+    new RegExp(`^${READER_HISTORY_HASH}-(\\d+)$`),
+  );
+  if (pageOnlyMatch) {
+    return {
+      chapterId: null,
+      page: Math.max(Number.parseInt(pageOnlyMatch[1], 10) - 1, 0),
+    };
+  }
+
+  const chapterMatch = hash.match(
+    new RegExp(`^${READER_STATE_HASH_PREFIX}-(.+)-page-(\\d+)$`),
+  );
+  if (!chapterMatch) {
+    return { chapterId: null, page: -1 };
+  }
+
+  try {
+    return {
+      chapterId: decodeURIComponent(chapterMatch[1]),
+      page: Math.max(Number.parseInt(chapterMatch[2], 10) - 1, 0),
+    };
+  } catch {
+    return { chapterId: chapterMatch[1], page: 0 };
+  }
+}
+
+export function clearReaderStateUrl(url: string) {
+  const nextUrl = new URL(url);
+  nextUrl.searchParams.delete(READER_CHAPTER_SEARCH_PARAM);
+  nextUrl.searchParams.delete(READER_PAGE_SEARCH_PARAM);
+  nextUrl.hash = '';
+  return nextUrl.toString();
 }
 
 export function isReaderHistoryState(

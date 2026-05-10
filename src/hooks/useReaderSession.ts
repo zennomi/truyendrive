@@ -1,9 +1,27 @@
 import { useEffectEvent, useRef, type MutableRefObject } from 'react';
 
+import {
+  clearReaderStateUrl,
+  parseReaderStateFromUrl,
+} from '../lib/readerUtils';
+
 interface UseReaderSessionParams {
   currentPageRef: MutableRefObject<number>;
   historyPageRef: MutableRefObject<number | null>;
   isHandlingPopStateRef: MutableRefObject<boolean>;
+}
+
+export function getInitialReaderState() {
+  return parseReaderStateFromUrl(window.location.href);
+}
+
+function getReaderBaseUrl(url: string) {
+  const readerState = parseReaderStateFromUrl(url);
+  if (readerState.page < 0 && !readerState.chapterId) {
+    return url;
+  }
+
+  return clearReaderStateUrl(url);
 }
 
 export function useReaderSession({
@@ -14,10 +32,10 @@ export function useReaderSession({
   const previousTitleRef = useRef<string | null>(null);
   const previousUrlRef = useRef<string | null>(null);
 
-  const beginReaderSession = useEffectEvent(() => {
+  const beginReaderSession = useEffectEvent((initialPage = -1) => {
     previousTitleRef.current = document.title;
-    previousUrlRef.current = window.location.href;
-    currentPageRef.current = -1;
+    previousUrlRef.current = getReaderBaseUrl(window.location.href);
+    currentPageRef.current = initialPage;
     historyPageRef.current = null;
     isHandlingPopStateRef.current = false;
   });
