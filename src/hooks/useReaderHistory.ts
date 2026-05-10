@@ -20,7 +20,6 @@ interface UseReaderHistoryParams {
   imageIds: string[];
   isHandlingPopStateRef: MutableRefObject<boolean>;
   isOpen: boolean;
-  previousUrlRef: MutableRefObject<string | null>;
   readerTitle: string;
   resetReaderState: (restoreHistoryUrl: boolean) => void;
   scrollToGroup: (index: number, behavior?: ScrollBehavior) => void;
@@ -36,7 +35,6 @@ export function useReaderHistory({
   imageIds,
   isHandlingPopStateRef,
   isOpen,
-  previousUrlRef,
   readerTitle,
   resetReaderState,
   scrollToGroup,
@@ -83,12 +81,11 @@ export function useReaderHistory({
       return;
     }
 
-    const baseUrl = previousUrlRef.current ?? window.location.href;
     const nextState: ReaderHistoryState = {
       page: activePage,
       truyendriveReader: true,
     };
-    const nextUrl = buildReaderHistoryUrl(baseUrl, activePage);
+    const nextUrl = buildReaderHistoryUrl(window.location.href, activePage);
 
     if (historyDepthRef.current === 0) {
       window.history.pushState(nextState, '', nextUrl);
@@ -133,7 +130,6 @@ export function useReaderHistory({
     historyPageRef,
     isHandlingPopStateRef,
     isOpen,
-    previousUrlRef,
     readerTitle,
     settings.bhv.historyUpdate,
   ]);
