@@ -62,7 +62,7 @@ Hoặc dùng các url trực tiếp dưới đây:
    - Click vào giữa màn hình để mở/đóng thanh công cụ.
    - Sử dụng thanh công cụ hoặc sidebar để **chuyển chương**, phóng to/thu nhỏ, hay thay đổi các cài đặt khác theo sở thích.
 
-### Nhóm dịch
+### Người share truyện
 
 Để trải nghiệm đọc truyện tốt nhất, bạn nên tổ chức thư mục Google Drive theo cấu trúc sau:
 
