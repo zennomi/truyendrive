@@ -15,7 +15,6 @@ interface UseReaderHistoryParams {
   activePage: number;
   currentPageRef: MutableRefObject<number>;
   displayGroups: ReaderGroup[];
-  historyDepthRef: MutableRefObject<number>;
   historyPageRef: MutableRefObject<number | null>;
   imageIds: string[];
   isHandlingPopStateRef: MutableRefObject<boolean>;
@@ -30,7 +29,6 @@ export function useReaderHistory({
   activePage,
   currentPageRef,
   displayGroups,
-  historyDepthRef,
   historyPageRef,
   imageIds,
   isHandlingPopStateRef,
@@ -87,14 +85,6 @@ export function useReaderHistory({
     };
     const nextUrl = buildReaderHistoryUrl(window.location.href, activePage);
 
-    if (historyDepthRef.current === 0) {
-      window.history.pushState(nextState, '', nextUrl);
-      historyDepthRef.current = 1;
-      historyPageRef.current = activePage;
-      document.title = title;
-      return;
-    }
-
     const previousPage = historyPageRef.current;
     switch (settings.bhv.historyUpdate) {
       case 'replace':
@@ -104,7 +94,6 @@ export function useReaderHistory({
       case 'jump':
         if (previousPage === null || Math.abs(previousPage - activePage) > 2) {
           window.history.pushState(nextState, '', nextUrl);
-          historyDepthRef.current += 1;
         } else {
           window.history.replaceState(nextState, '', nextUrl);
         }
@@ -112,7 +101,6 @@ export function useReaderHistory({
       case 'all':
         if (previousPage !== activePage) {
           window.history.pushState(nextState, '', nextUrl);
-          historyDepthRef.current += 1;
         } else {
           window.history.replaceState(nextState, '', nextUrl);
         }
@@ -126,7 +114,6 @@ export function useReaderHistory({
   }, [
     activePage,
     displayGroups,
-    historyDepthRef,
     historyPageRef,
     isHandlingPopStateRef,
     isOpen,

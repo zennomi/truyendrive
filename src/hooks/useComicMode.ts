@@ -4,7 +4,6 @@ import {
   useEffectEvent,
   useRef,
   useState,
-  type MutableRefObject,
 } from 'react';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -17,7 +16,6 @@ import {
 
 interface UseComicModeParams {
   beginReaderSession: () => void;
-  historyDepthRef: MutableRefObject<number>;
   onResetUi: () => void;
   resetHistoryState: (restoreHistoryUrl: boolean) => void;
 }
@@ -206,7 +204,6 @@ function mergeChapters(currentChapters: Chapter[], nextChapters: Chapter[]) {
 
 export function useComicMode({
   beginReaderSession,
-  historyDepthRef,
   onResetUi,
   resetHistoryState,
 }: UseComicModeParams) {
@@ -276,13 +273,8 @@ export function useComicMode({
   );
 
   const closeComicMode = useCallback(() => {
-    if (historyDepthRef.current > 0) {
-      window.history.go(-historyDepthRef.current);
-      return;
-    }
-
     resetReaderState(false);
-  }, [historyDepthRef, resetReaderState]);
+  }, [resetReaderState]);
 
   const getOpenStatusMessage = useEffectEvent(() => {
     if (isAuthLoading) {

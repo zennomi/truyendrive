@@ -37,7 +37,6 @@ function AppContent() {
   const imageWrapRef = useRef<HTMLDivElement | null>(null);
   const groupRefs = useRef<Array<HTMLDivElement | null>>([]);
   const currentPageRef = useRef(-1);
-  const historyDepthRef = useRef(0);
   const historyPageRef = useRef<number | null>(null);
   const isHandlingPopStateRef = useRef(false);
   const {
@@ -58,7 +57,6 @@ function AppContent() {
   const { beginReaderSession, readerTitle, resetHistoryState } =
     useReaderSession({
       currentPageRef,
-      historyDepthRef,
       historyPageRef,
       isHandlingPopStateRef,
     });
@@ -82,7 +80,6 @@ function AppContent() {
     statusMessage,
   } = useComicMode({
     beginReaderSession,
-    historyDepthRef,
     onResetUi: resetReaderUi,
     resetHistoryState,
   });
@@ -143,7 +140,6 @@ function AppContent() {
     activePage,
     currentPageRef,
     displayGroups,
-    historyDepthRef,
     historyPageRef,
     imageIds,
     isHandlingPopStateRef,

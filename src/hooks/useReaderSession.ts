@@ -4,14 +4,12 @@ import { getReaderTitle } from '../lib/readerUtils';
 
 interface UseReaderSessionParams {
   currentPageRef: MutableRefObject<number>;
-  historyDepthRef: MutableRefObject<number>;
   historyPageRef: MutableRefObject<number | null>;
   isHandlingPopStateRef: MutableRefObject<boolean>;
 }
 
 export function useReaderSession({
   currentPageRef,
-  historyDepthRef,
   historyPageRef,
   isHandlingPopStateRef,
 }: UseReaderSessionParams) {
@@ -24,14 +22,12 @@ export function useReaderSession({
     previousUrlRef.current = window.location.href;
     readerTitleRef.current = getReaderTitle();
     currentPageRef.current = -1;
-    historyDepthRef.current = 0;
     historyPageRef.current = null;
     isHandlingPopStateRef.current = false;
   });
 
   const resetHistoryState = useEffectEvent((restoreHistoryUrl: boolean) => {
     currentPageRef.current = -1;
-    historyDepthRef.current = 0;
     historyPageRef.current = null;
     isHandlingPopStateRef.current = false;
 
