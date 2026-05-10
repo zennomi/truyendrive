@@ -63,13 +63,6 @@ export function buildPageGroups(
   return direction === 'rtl' ? [...groups].reverse() : groups;
 }
 
-export function getReaderTitle() {
-  return (
-    document.title.replace(/\s*-\s*Google Drive$/i, '').trim() ||
-    'Google Drive Comic Reader'
-  );
-}
-
 export function getImageUrl(id: string, authUser = getAuthUser()) {
   return `https://lh3.google.com/u/${authUser}/d/${id}`;
 }

@@ -1,7 +1,5 @@
 import { useEffectEvent, useRef, type MutableRefObject } from 'react';
 
-import { getReaderTitle } from '../lib/readerUtils';
-
 interface UseReaderSessionParams {
   currentPageRef: MutableRefObject<number>;
   historyPageRef: MutableRefObject<number | null>;
@@ -15,12 +13,10 @@ export function useReaderSession({
 }: UseReaderSessionParams) {
   const previousTitleRef = useRef<string | null>(null);
   const previousUrlRef = useRef<string | null>(null);
-  const readerTitleRef = useRef(getReaderTitle());
 
   const beginReaderSession = useEffectEvent(() => {
     previousTitleRef.current = document.title;
     previousUrlRef.current = window.location.href;
-    readerTitleRef.current = getReaderTitle();
     currentPageRef.current = -1;
     historyPageRef.current = null;
     isHandlingPopStateRef.current = false;
@@ -49,7 +45,6 @@ export function useReaderSession({
 
   return {
     beginReaderSession,
-    readerTitle: readerTitleRef.current,
     resetHistoryState,
   };
 }

@@ -54,12 +54,11 @@ function AppContent() {
     setSettingsTab,
     settingsTab,
   } = useReaderUiState();
-  const { beginReaderSession, readerTitle, resetHistoryState } =
-    useReaderSession({
-      currentPageRef,
-      historyPageRef,
-      isHandlingPopStateRef,
-    });
+  const { beginReaderSession, resetHistoryState } = useReaderSession({
+    currentPageRef,
+    historyPageRef,
+    isHandlingPopStateRef,
+  });
 
   const {
     activeChapterIndex,
@@ -111,6 +110,10 @@ function AppContent() {
     settings.lyt.fit === 'width' || settings.lyt.fit === 'width_limit';
   const isComicSurfaceOpen =
     isOpen || folderMode === 'chapters' || isModePickerOpen;
+  const readerTitle =
+    folderDetails?.title ||
+    parentChapters[activeChapterIndex]?.name ||
+    'Google Drive Comic Reader';
 
   const {
     goToAdjacentGroup,
