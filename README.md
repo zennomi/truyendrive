@@ -35,6 +35,24 @@ Hoặc dùng các url trực tiếp dưới đây:
 
 > coming soon
 
+#### Lưu ý với người lần đầu cài đặt Tampermonkey
+
+Lần đầu cài đặt Tampermonkey, ở icon của Tampermonkey sẽ hiện ra một cái chữ "X" đỏ, bạn cần thao tác khác để kích hoạt Tampermonkey.
+
+![Tampermonkey Disabled](./assets/guides/tampermonkey-disabled.png)
+
+- Bấm vào icon của Tampermonkey.
+- Chọn dấu 3 chấm hoặc chuột phải vào icon của Tampermonkey.
+- Chọn "Manage Extension" (Quản lý).
+
+![Tampermonkey Manage](./assets/guides/tampermonkey-activation.png)
+
+- Bật Allow Userscripts
+
+![Tampermonkey Allow Userscript](./assets/guides/tempermonkey-allow-userscript.png)
+
+Hướng dẫn chi tiết hơn [tại đây](https://www.tampermonkey.net/faq.php?q=Q209#Q209).
+
 ### Bước 2: Cài đặt Userscript TruyenDrive
 
 1. Mở liên kết đến script:
@@ -42,6 +60,14 @@ Hoặc dùng các url trực tiếp dưới đây:
 
 2. Tampermonkey sẽ tự động bắt link và mở ra một trang xác nhận.
 3. Nhấn vào nút **Install** (Cài đặt) để hoàn tất.
+
+### Bước 3: Kiểm tra
+
+Mở 1 trang Google Drive và bấm vào icon Tampermonkey để kiểm tra xem TruyenDrive đã được cài đặt thành công hay chưa. Như ảnh dưới đây là đã thành công.
+
+![Tampermonkey Activated](./assets/guides/tampermonkey-activated.png)
+
+Ngoài ra sẽ có 1 nút TruyenDrive ở góc dưới cùng bên phải của trang Google Drive.
 
 ## Cách sử dụng
 
