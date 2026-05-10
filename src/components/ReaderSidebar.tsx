@@ -249,6 +249,17 @@ export const ReaderSidebar = memo(function ReaderSidebar({
     [scrollToGroup],
   );
 
+  const handleCopyUrl = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault();
+      const url = window.location.href.replace(/\/u\/\d+/, '');
+      navigator.clipboard.writeText(url).catch((err) => {
+        console.error('Failed to copy URL: ', err);
+      });
+    },
+    [],
+  );
+
   return (
     <aside className="">
       <div
@@ -299,8 +310,14 @@ export const ReaderSidebar = memo(function ReaderSidebar({
                 />
                 <button className="ico-btn download-cancel" type="button" />
               </div>
-            </div>
-            <a className="rdr-share ico-btn " data-tip="Copy short link [R]" /> */}
+            </div> */}
+            <a
+              className="rdr-share ico-btn "
+              data-tip="Copy short link [R]"
+              onClick={handleCopyUrl}
+              role="button"
+              tabIndex={0}
+            />
             <button
               className="ico-btn jump"
               data-tip="Jump to chapter... [J]"
