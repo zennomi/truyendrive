@@ -35,7 +35,7 @@
 
 .truyendrive-launcher {
   align-items: center;
-  background-color: #c608082e;
+  background-color: black;
   border: 1px solid #f00c;
   border-radius: 0.2em;
   bottom: 20px;
@@ -62,7 +62,7 @@
 }
 
 .truyendrive-launcher:hover {
-  background-color: #c608084d;
+  background-color: #1a1a1a;
   transform: translateY(-1px);
 }
 
