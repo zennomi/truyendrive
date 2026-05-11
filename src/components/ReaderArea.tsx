@@ -16,11 +16,13 @@ import {
 import type { ReaderSettings } from '../useSettings';
 
 interface ReaderAreaProps {
+  decryptedSrcs: Map<string, string>;
   displayGroups: ReaderGroup[];
   groupRefs: RefObject<Array<HTMLDivElement | null>>;
   hoverEdge: 'next' | 'prev' | null;
   imageWrapRef: RefObject<HTMLDivElement | null>;
   isGroupPreloaded: (index: number) => boolean;
+  isPasswordMode: boolean;
   isScrollReady: boolean;
   navigateGroupOrChapter: (delta: -1 | 1) => void;
   onPageLoad: (pageId: string) => void;
@@ -51,11 +53,13 @@ function createIdlePointerGestureState(): PointerGestureState {
 }
 
 export const ReaderArea = memo(function ReaderArea({
+  decryptedSrcs,
   displayGroups,
   groupRefs,
   hoverEdge,
   imageWrapRef,
   isGroupPreloaded,
+  isPasswordMode,
   isScrollReady,
   navigateGroupOrChapter,
   onPageLoad,
@@ -296,17 +300,39 @@ export const ReaderArea = memo(function ReaderArea({
               groupRefs.current[groupIndex] = element;
             }}
           >
-            {group.pages.map((page) => (
-              <img
-                alt={`Page ${page.index + 1}`}
-                data-page-id={page.id}
-                decoding="async"
-                key={page.id}
-                loading={isGroupPreloaded(groupIndex) ? 'eager' : 'lazy'}
-                onLoad={handlePageImageLoad}
-                src={getImageUrl(page.id)}
-              />
-            ))}
+            {group.pages.map((page) => {
+              const decryptedSrc =
+                isPasswordMode ? decryptedSrcs.get(page.id) : undefined;
+
+              if (isPasswordMode && !decryptedSrc) {
+                const aspectRatio =
+                  page.width && page.height
+                    ? page.width / page.height
+                    : undefined;
+
+                return (
+                  <img
+                    alt={`Page ${page.index + 1}`}
+                    data-page-id={page.id}
+                    key={page.id}
+                    style={aspectRatio ? { aspectRatio } : undefined}
+                    src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                  />
+                );
+              }
+
+              return (
+                <img
+                  alt={`Page ${page.index + 1}`}
+                  data-page-id={page.id}
+                  decoding="async"
+                  key={page.id}
+                  loading={isGroupPreloaded(groupIndex) ? 'eager' : 'lazy'}
+                  onLoad={handlePageImageLoad}
+                  src={decryptedSrc ?? getImageUrl(page.id)}
+                />
+              );
+            })}
           </div>
         ))}
       </div>

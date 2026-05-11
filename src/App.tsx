@@ -12,6 +12,7 @@ import { useComicMode } from './hooks/useComicMode';
 import { useReaderControls } from './hooks/useReaderControls';
 import { useReaderHistory } from './hooks/useReaderHistory';
 import { useInitialScroll } from './hooks/useInitialScroll';
+import { useImageDecryptor } from './hooks/useImageDecryptor';
 import { useKeyboardHandler } from './hooks/useKeyboardHandler';
 import { useReaderPreload } from './hooks/useReaderPreload';
 import { useReaderSession } from './hooks/useReaderSession';
@@ -30,6 +31,9 @@ import { AppErrorBoundary } from './components/AppErrorBoundary';
 function AppContent() {
   const [initialReaderState] = useState(() =>
     parseReaderStateFromUrl(window.location.href),
+  );
+  const [password] = useState(() =>
+    new URL(window.location.href).searchParams.get('password'),
   );
   const {
     settings,
@@ -73,7 +77,7 @@ function AppContent() {
     folderMode,
     goToAdjacentChapter,
     goToChapterAtIndex,
-    imageIds,
+    images,
     isAutoOpening,
     isModePickerOpen,
     isOpen,
@@ -92,13 +96,13 @@ function AppContent() {
   });
 
   const displayGroups = useMemo(
-    () =>
-      buildPageGroups(imageIds, settings.lyt.spread, settings.lyt.direction),
-    [imageIds, settings.lyt.direction, settings.lyt.spread],
+    () => buildPageGroups(images, settings.lyt.spread, settings.lyt.direction),
+    [images, settings.lyt.direction, settings.lyt.spread],
   );
+  const imageIds = useMemo(() => images.map((image) => image.id), [images]);
   const themeStyle = useMemo(() => getThemeStyle(settings.thm), [settings.thm]);
   const activePage = displayGroups[activeGroupIndex]?.pages[0]?.index ?? 0;
-  const activePageNumber = imageIds.length === 0 ? 0 : activePage + 1;
+  const activePageNumber = images.length === 0 ? 0 : activePage + 1;
   const activeGroup = displayGroups[activeGroupIndex];
   const hasAdjacentChapters = parentChapters.length > 1;
   const isRtl = settings.lyt.direction === 'rtl';
@@ -124,6 +128,17 @@ function AppContent() {
     'Google Drive Comic Reader';
   const activeChapterId =
     parentChapters[activeChapterIndex]?.id ?? activeFolderId;
+  const imagePassword = folderMode === 'images' ? password : null;
+  const isPasswordMode = imagePassword !== null;
+  const { decryptedSrcs } = useImageDecryptor(
+    images,
+    imagePassword,
+    displayGroups,
+    activeGroupIndex,
+    chapterStartGroupIndex,
+    isScrollReady,
+    settings.bhv.preload,
+  );
 
   const {
     goToAdjacentGroup,
@@ -169,13 +184,13 @@ function AppContent() {
     displayGroups,
     initialGroupIndex: chapterStartGroupIndex,
     isInitialScrollDone: isScrollReady,
+    isPasswordMode,
     isOpen,
     preloadDistance: settings.bhv.preload,
   });
   const { tooWideGroups } = useWideGroupTracker({
     displayGroups,
     groupRefs,
-    imageIds,
     imageLoadVersion,
     isOpen,
     settings,
@@ -399,7 +414,8 @@ function AppContent() {
               goToAdjacentChapter={goToAdjacentChapterFromReader}
               goToAdjacentGroup={goToAdjacentGroup}
               goToChapterAtIndex={goToChapterAtIndexFromReader}
-              imageIds={imageIds}
+              images={images}
+              isPasswordMode={isPasswordMode}
               parentChapters={parentChapters}
               readerTitle={readerTitle}
               scrollToGroup={scrollToGroup}
@@ -414,10 +430,10 @@ function AppContent() {
               activeGroupIndex={activeGroupIndex}
               activePageNumber={activePageNumber}
               displayGroups={displayGroups}
-              imageIds={imageIds}
+              direction={settings.lyt.direction}
               isGroupLoaded={isGroupLoaded}
               isSelectorVisible={isSelectorVisible}
-              direction={settings.lyt.direction}
+              pageCount={images.length}
               scrollToGroup={scrollToGroup}
             />
 
@@ -427,6 +443,7 @@ function AppContent() {
               hoverEdge={hoverEdge}
               imageWrapRef={imageWrapRef}
               isGroupPreloaded={isGroupPreloaded}
+              isPasswordMode={isPasswordMode}
               isScrollReady={isScrollReady}
               navigateGroupOrChapter={navigateGroupOrChapter}
               onPageLoad={handlePageLoad}
@@ -440,6 +457,7 @@ function AppContent() {
               showPageSelector={showPageSelector}
               showZoomControls={showZoomControls}
               syncActiveGroupFromScroll={syncActiveGroupFromScroll}
+              decryptedSrcs={decryptedSrcs}
               tooWideGroups={tooWideGroups}
             />
 

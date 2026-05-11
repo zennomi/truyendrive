@@ -13,6 +13,7 @@ import {
   getAuthUser,
   type DriveFolderDetails,
 } from '../lib/driveApi';
+import type { DriveImage } from '../lib/readerUtils';
 
 interface UseComicModeParams {
   beginReaderSession: (initialPage?: number) => void;
@@ -92,19 +93,25 @@ function resolveShortcuts(items: DriveFolderItem[]) {
   return items.map(resolveShortcutItem);
 }
 
-function extractImageIds(items: DriveFolderItem[]) {
-  const ids: string[] = [];
+function extractImages(items: DriveFolderItem[]): DriveImage[] {
+  const images: DriveImage[] = [];
 
   items.forEach((item) => {
     const id = typeof item[0] === 'string' ? item[0] : '';
     const mimeType = typeof item[3] === 'string' ? item[3] : '';
 
-    if (id && mimeType.startsWith('image/')) {
-      ids.push(id);
+    if (!id || !mimeType.startsWith('image/')) {
+      return;
     }
+
+    const dimensions = Array.isArray(item[26]) ? item[26] : null;
+    const width = typeof dimensions?.[1] === 'number' ? dimensions[1] : 0;
+    const height = typeof dimensions?.[2] === 'number' ? dimensions[2] : 0;
+
+    images.push({ id, width, height });
   });
 
-  return ids;
+  return images;
 }
 
 function classifyItems(items: DriveFolderItem[]): FolderDetectionResult {
@@ -166,22 +173,24 @@ function extractChapters(items: DriveFolderItem[]): Chapter[] {
   return chapters;
 }
 
-function mergeImageIds(currentIds: string[], nextIds: string[]) {
-  if (nextIds.length === 0) {
-    return currentIds;
+function mergeImages(currentImages: DriveImage[], nextImages: DriveImage[]) {
+  if (nextImages.length === 0) {
+    return currentImages;
   }
 
-  const knownIds = new Set(currentIds);
-  const mergedIds = [...currentIds];
+  const knownIds = new Set(currentImages.map((image) => image.id));
+  const mergedImages = [...currentImages];
 
-  nextIds.forEach((id) => {
-    if (!knownIds.has(id)) {
-      knownIds.add(id);
-      mergedIds.push(id);
+  nextImages.forEach((image) => {
+    if (!knownIds.has(image.id)) {
+      knownIds.add(image.id);
+      mergedImages.push(image);
     }
   });
 
-  return mergedIds.length === currentIds.length ? currentIds : mergedIds;
+  return mergedImages.length === currentImages.length
+    ? currentImages
+    : mergedImages;
 }
 
 function mergeChapters(currentChapters: Chapter[], nextChapters: Chapter[]) {
@@ -220,7 +229,7 @@ export function useComicMode({
     null,
   );
   const [folderMode, setFolderMode] = useState<FolderMode>(null);
-  const [imageIds, setImageIds] = useState<string[]>([]);
+  const [images, setImages] = useState<DriveImage[]>([]);
   const [isAutoOpening, setIsAutoOpening] = useState(
     initialChapterId !== null || initialPage >= 0,
   );
@@ -232,7 +241,7 @@ export function useComicMode({
   const activeFetchIdRef = useRef(0);
   const chaptersRef = useRef<Chapter[]>([]);
   const firstPageCacheRef = useRef<FirstPageCache | null>(null);
-  const imageIdsRef = useRef<string[]>([]);
+  const imagesRef = useRef<DriveImage[]>([]);
   const initialChapterIdRef = useRef(initialChapterId);
   const initialPageRef = useRef(initialPage);
   const initialReaderOpenAttemptedRef = useRef(false);
@@ -242,9 +251,9 @@ export function useComicMode({
     activeFetchIdRef.current += 1;
   }, []);
 
-  const replaceImageIds = useCallback((nextImageIds: string[]) => {
-    imageIdsRef.current = nextImageIds;
-    setImageIds(nextImageIds);
+  const replaceImages = useCallback((nextImages: DriveImage[]) => {
+    imagesRef.current = nextImages;
+    setImages(nextImages);
   }, []);
 
   const replaceChapters = useCallback((nextChapters: Chapter[]) => {
@@ -271,7 +280,7 @@ export function useComicMode({
       setIsAutoOpening(false);
       setIsFolderScanComplete(false);
       setIsModePickerOpen(false);
-      replaceImageIds([]);
+      replaceImages([]);
       setIsOpen(false);
       setStatusMessage('Reader closed');
       resetHistoryState(restoreHistoryUrl);
@@ -280,7 +289,7 @@ export function useComicMode({
       cancelFetchLoop,
       onResetUi,
       replaceChapters,
-      replaceImageIds,
+      replaceImages,
       resetHistoryState,
       resetParentChapterState,
     ],
@@ -321,7 +330,7 @@ export function useComicMode({
       setFolderMode(null);
       setIsFolderScanComplete(false);
       setIsModePickerOpen(false);
-      replaceImageIds([]);
+      replaceImages([]);
       setIsOpen(false);
       setStatusMessage(getOpenStatusMessage());
     },
@@ -330,7 +339,7 @@ export function useComicMode({
       cancelFetchLoop,
       getOpenStatusMessage,
       replaceChapters,
-      replaceImageIds,
+      replaceImages,
       resetParentChapterState,
     ],
   );
@@ -369,11 +378,11 @@ export function useComicMode({
       setFolderMode('images');
       setIsFolderScanComplete(false);
       setIsModePickerOpen(false);
-      replaceImageIds([]);
+      replaceImages([]);
       setIsOpen(true);
       setStatusMessage('Loading pages...');
     },
-    [cancelFetchLoop, replaceChapters, replaceImageIds],
+    [cancelFetchLoop, replaceChapters, replaceImages],
   );
 
   const goToChapterAtIndex = useCallback(
@@ -420,7 +429,7 @@ export function useComicMode({
 
       resetParentChapterState();
       replaceChapters([]);
-      replaceImageIds([]);
+      replaceImages([]);
       setFolderMode(mode);
       setIsFolderScanComplete(false);
       setIsModePickerOpen(false);
@@ -429,7 +438,7 @@ export function useComicMode({
         mode === 'chapters' ? 'Loading chapters...' : 'Loading pages...',
       );
     },
-    [activeFolderId, replaceChapters, replaceImageIds, resetParentChapterState],
+    [activeFolderId, replaceChapters, replaceImages, resetParentChapterState],
   );
 
   useEffect(() => {
@@ -463,16 +472,16 @@ export function useComicMode({
       setIsAutoOpening(false);
 
       while (!isCancelled && activeFetchIdRef.current === fetchId) {
-        const mergedIds = mergeImageIds(
-          imageIdsRef.current,
-          extractImageIds(items),
+        const mergedImages = mergeImages(
+          imagesRef.current,
+          extractImages(items),
         );
 
-        if (mergedIds !== imageIdsRef.current) {
-          replaceImageIds(mergedIds);
+        if (mergedImages !== imagesRef.current) {
+          replaceImages(mergedImages);
         }
 
-        const pageCount = mergedIds.length;
+        const pageCount = mergedImages.length;
         if (!cursor) {
           setIsFolderScanComplete(true);
           setStatusMessage(
@@ -698,7 +707,7 @@ export function useComicMode({
     folderMode,
     isAuthLoading,
     replaceChapters,
-    replaceImageIds,
+    replaceImages,
   ]);
 
   useEffect(() => {
@@ -753,7 +762,7 @@ export function useComicMode({
     folderMode,
     goToAdjacentChapter,
     goToChapterAtIndex,
-    imageIds,
+    images,
     isAutoOpening,
     isModePickerOpen,
     isOpen,

@@ -13,6 +13,7 @@ import {
   getDisplayGroupIndex,
   getImageUrl,
   pageLabel,
+  type DriveImage,
   type ReaderGroup,
 } from '../lib/readerUtils';
 
@@ -47,7 +48,8 @@ interface ReaderSidebarProps {
   goToAdjacentChapter: (delta: -1 | 1) => void;
   goToAdjacentGroup: (delta: number) => void;
   goToChapterAtIndex: (index: number) => void;
-  imageIds: string[];
+  images: DriveImage[];
+  isPasswordMode: boolean;
   logicalActiveGroupIndex: number;
   parentChapters: Chapter[];
   readerTitle: string;
@@ -73,7 +75,8 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   goToAdjacentChapter,
   goToAdjacentGroup,
   goToChapterAtIndex,
-  imageIds,
+  images,
+  isPasswordMode,
   logicalActiveGroupIndex,
   parentChapters,
   readerTitle,
@@ -249,16 +252,13 @@ export const ReaderSidebar = memo(function ReaderSidebar({
     [scrollToGroup],
   );
 
-  const handleCopyUrl = useCallback(
-    (event: MouseEvent<HTMLAnchorElement>) => {
-      event.preventDefault();
-      const url = window.location.href.replace(/\/u\/\d+/, '');
-      navigator.clipboard.writeText(url).catch((err) => {
-        console.error('Failed to copy URL: ', err);
-      });
-    },
-    [],
-  );
+  const handleCopyUrl = useCallback((event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    const url = window.location.href.replace(/\/u\/\d+/, '');
+    navigator.clipboard.writeText(url).catch((err) => {
+      console.error('Failed to copy URL: ', err);
+    });
+  }, []);
 
   return (
     <aside className="">
@@ -347,10 +347,10 @@ export const ReaderSidebar = memo(function ReaderSidebar({
                 onChange={handlePageSelectChange}
                 value={String(activePage)}
               >
-                {imageIds.map((id, index) => (
+                {images.map((image, index) => (
                   <option
                     className="UI SimpleListItem"
-                    key={id}
+                    key={image.id}
                     value={String(index)}
                   >
                     Page {index + 1}
@@ -460,44 +460,51 @@ export const ReaderSidebar = memo(function ReaderSidebar({
         <section className="rdr-groups UI List Selector Tabs">
           <div className="UI SimpleListItem">Google Drive folder scan</div>
           <div className="is-active UI SimpleListItem">
-            {imageIds.length} image pages detected
+            {images.length} image pages detected
           </div>
         </section>
 
         <section className="rdr-previews">
-          <div
-            className="header UI Button MultiStateButton"
-            {...{ 'data-apr.previews': settings.apr.previews }}
-            onClick={handleTogglePreviews}
-            role="button"
-            tabIndex={0}
-          >
-            <span>Previews</span>
-            <div className="ico-btn expander" data-tip="Show previews [P]" />
-          </div>
-          <div className="rdr-previews-gallery UI List Selector Tabs">
-            {imageIds.map((id, index) => {
-              const previewGroupIndex = findGroupIndexForPage(
-                displayGroups,
-                index,
-              );
-
-              return (
-                <img
-                  className={
-                    previewGroupIndex === activeGroupIndex
-                      ? 'is-active'
-                      : undefined
-                  }
-                  data-group-index={String(previewGroupIndex)}
-                  key={id}
-                  loading="lazy"
-                  onClick={handlePreviewClick}
-                  src={`${getImageUrl(id)}=w400-h380-p-k-rw-v1-nu-iv1?auditContext=thumbnail`}
+          {!isPasswordMode && (
+            <>
+              <div
+                className="header UI Button MultiStateButton"
+                {...{ 'data-apr.previews': settings.apr.previews }}
+                onClick={handleTogglePreviews}
+                role="button"
+                tabIndex={0}
+              >
+                <span>Previews</span>
+                <div
+                  className="ico-btn expander"
+                  data-tip="Show previews [P]"
                 />
-              );
-            })}
-          </div>
+              </div>
+              <div className="rdr-previews-gallery UI List Selector Tabs">
+                {images.map((image, index) => {
+                  const previewGroupIndex = findGroupIndexForPage(
+                    displayGroups,
+                    index,
+                  );
+
+                  return (
+                    <img
+                      className={
+                        previewGroupIndex === activeGroupIndex
+                          ? 'is-active'
+                          : undefined
+                      }
+                      data-group-index={String(previewGroupIndex)}
+                      key={image.id}
+                      loading="lazy"
+                      onClick={handlePreviewClick}
+                      src={`${getImageUrl(image.id)}=w400-h380-p-k-rw-v1-nu-iv1?auditContext=thumbnail`}
+                    />
+                  );
+                })}
+              </div>
+            </>
+          )}
         </section>
         <section className="rdr-description">
           <div>
