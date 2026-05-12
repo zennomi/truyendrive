@@ -529,6 +529,14 @@ aside header > .guya {
 [data-apr\.selpinned='true'].ico-btn:before {
   content: '\e905';
 }
+.ico-btn.password:before {
+  content: 'K';
+  font-size: 0.8em;
+  font-weight: 700;
+}
+.ico-btn.password[data-password-active='true'] {
+  color: var(--accentCol);
+}
 [data-lyt\.fit].ico-btn {
 }
 [data-lyt\.fit='height'].ico-btn:before {

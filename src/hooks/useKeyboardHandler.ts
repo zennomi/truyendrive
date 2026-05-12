@@ -37,7 +37,9 @@ interface UseKeyboardHandlerParams {
   isOpen: boolean;
   isSettingsOpen: boolean;
   navigateGroupOrChapter: (delta: -1 | 1) => void;
+  onSetPassword: (pw: string | null) => void;
   performVerticalStep: (direction: 1 | -1) => void;
+  password: string | null;
   setIsSettingsOpen: Dispatch<SetStateAction<boolean>>;
   settings: ReaderSettings;
   toggleSetting: ToggleSettingFn;
@@ -50,7 +52,9 @@ export function useKeyboardHandler({
   isOpen,
   isSettingsOpen,
   navigateGroupOrChapter,
+  onSetPassword,
   performVerticalStep,
+  password,
   setIsSettingsOpen,
   settings,
   toggleSetting,
@@ -76,6 +80,13 @@ export function useKeyboardHandler({
     if (event.key === 'o' || event.key === 'O') {
       event.preventDefault();
       setIsSettingsOpen((current) => !current);
+      return;
+    }
+
+    if (!isSettingsOpen && (event.key === 'k' || event.key === 'K')) {
+      event.preventDefault();
+      const value = window.prompt('Enter decryption password:', password ?? '');
+      onSetPassword(value && value.length > 0 ? value : null);
       return;
     }
 

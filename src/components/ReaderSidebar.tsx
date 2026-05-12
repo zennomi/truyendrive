@@ -51,7 +51,9 @@ interface ReaderSidebarProps {
   images: DriveImage[];
   isPasswordMode: boolean;
   logicalActiveGroupIndex: number;
+  onSetPassword: (pw: string | null) => void;
   parentChapters: Chapter[];
+  password: string | null;
   readerTitle: string;
   scrollToGroup: (index: number, behavior?: ScrollBehavior) => void;
   setIsSettingsOpen: (open: boolean) => void;
@@ -78,7 +80,9 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   images,
   isPasswordMode,
   logicalActiveGroupIndex,
+  onSetPassword,
   parentChapters,
+  password,
   readerTitle,
   scrollToGroup,
   setIsSettingsOpen,
@@ -239,6 +243,11 @@ export const ReaderSidebar = memo(function ReaderSidebar({
     toggleSetting('apr', 'previews');
   }, [toggleSetting]);
 
+  const handleSetPassword = useCallback(() => {
+    const value = window.prompt('Enter decryption password:', password ?? '');
+    onSetPassword(value && value.length > 0 ? value : null);
+  }, [onSetPassword, password]);
+
   const handlePreviewClick = useCallback(
     (event: MouseEvent<HTMLImageElement>) => {
       const groupIndex = Number.parseInt(
@@ -311,6 +320,13 @@ export const ReaderSidebar = memo(function ReaderSidebar({
                 <button className="ico-btn download-cancel" type="button" />
               </div>
             </div> */}
+            <button
+              className="ico-btn password UI Button MultiStateButton"
+              data-password-active={password !== null}
+              data-tip="Set/clear decryption password [K]"
+              onClick={handleSetPassword}
+              type="button"
+            />
             <a
               className="rdr-share ico-btn "
               data-tip="Copy short link [R]"

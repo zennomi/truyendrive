@@ -32,9 +32,10 @@ function AppContent() {
   const [initialReaderState] = useState(() =>
     parseReaderStateFromUrl(window.location.href),
   );
-  const [password] = useState(() =>
+  const [urlPassword] = useState(() =>
     new URL(window.location.href).searchParams.get('password'),
   );
+  const [manualPassword, setManualPassword] = useState<string | null>(null);
   const {
     settings,
     cycleSetting,
@@ -67,6 +68,9 @@ function AppContent() {
     historyPageRef,
     isHandlingPopStateRef,
   });
+  const handleResetPassword = useCallback(() => {
+    setManualPassword(null);
+  }, []);
 
   const {
     activeFolderId,
@@ -75,6 +79,7 @@ function AppContent() {
     closeComicMode,
     folderDetails,
     folderMode,
+    folderPassword,
     goToAdjacentChapter,
     goToChapterAtIndex,
     images,
@@ -91,6 +96,7 @@ function AppContent() {
     beginReaderSession,
     initialChapterId: initialReaderState.chapterId,
     initialPage: initialReaderState.page,
+    onResetPassword: handleResetPassword,
     onResetUi: resetReaderUi,
     resetHistoryState,
   });
@@ -128,6 +134,7 @@ function AppContent() {
     'Google Drive Comic Reader';
   const activeChapterId =
     parentChapters[activeChapterIndex]?.id ?? activeFolderId;
+  const password = manualPassword ?? folderPassword ?? urlPassword;
   const imagePassword = folderMode === 'images' ? password : null;
   const isPasswordMode = imagePassword !== null;
   const { decryptedSrcs } = useImageDecryptor(
@@ -329,7 +336,9 @@ function AppContent() {
     isOpen,
     isSettingsOpen,
     navigateGroupOrChapter,
+    onSetPassword: setManualPassword,
     performVerticalStep,
+    password,
     setIsSettingsOpen,
     settings,
     toggleSetting,
@@ -416,7 +425,9 @@ function AppContent() {
               goToChapterAtIndex={goToChapterAtIndexFromReader}
               images={images}
               isPasswordMode={isPasswordMode}
+              onSetPassword={setManualPassword}
               parentChapters={parentChapters}
+              password={password}
               readerTitle={readerTitle}
               scrollToGroup={scrollToGroup}
               setIsSettingsOpen={setIsSettingsOpen}
