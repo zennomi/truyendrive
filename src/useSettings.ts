@@ -9,7 +9,7 @@ export const FIT_OPTIONS = [
   'width',
   'height',
 ] as const;
-export const DIRECTION_OPTIONS = ['ltr', 'ttb', 'rtl'] as const;
+export const DIRECTION_OPTIONS = ['ttb', 'ltr', 'rtl'] as const;
 export const SPREAD_OPTIONS = ['1', '2', '2-odd'] as const;
 export const PRELOAD_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 100] as const;
 export const ZOOM_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
@@ -138,8 +138,8 @@ export const DEFAULT_SETTINGS: ReaderSettings = {
   lyt: {
     fit: 'width_limit',
     zoom: 100,
-    direction: 'ltr',
-    gap: false,
+    direction: 'ttb',
+    gap: true,
     spread: '1',
   },
   bhv: {
