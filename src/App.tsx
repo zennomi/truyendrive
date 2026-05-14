@@ -114,6 +114,8 @@ function AppContent() {
   const activePageNumber = images.length === 0 ? 0 : activePage + 1;
   const activeGroup = displayGroups[activeGroupIndex];
   const hasAdjacentChapters = parentChapters.length > 1;
+  const hasNextChapter =
+    parentChapters.length > 1 && activeChapterIndex < parentChapters.length - 1;
   const isRtl = settings.lyt.direction === 'rtl';
   const isTtb = settings.lyt.direction === 'ttb';
   const isAtFirstGroup = activeGroupIndex === 0;
@@ -504,6 +506,7 @@ function AppContent() {
                   syncActiveGroupFromScroll={syncActiveGroupFromScroll}
                   decryptedSrcs={decryptedSrcs}
                   tooWideGroups={tooWideGroups}
+                  hasNextChapter={hasNextChapter}
                 />
 
                 <ZoomControls

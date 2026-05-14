@@ -19,6 +19,7 @@ interface ReaderAreaProps {
   decryptedSrcs: Map<string, string>;
   displayGroups: ReaderGroup[];
   groupRefs: RefObject<Array<HTMLDivElement | null>>;
+  hasNextChapter: boolean;
   hoverEdge: 'next' | 'prev' | null;
   imageWrapRef: RefObject<HTMLDivElement | null>;
   isGroupPreloaded: (index: number) => boolean;
@@ -59,6 +60,7 @@ export const ReaderArea = memo(function ReaderArea({
   decryptedSrcs,
   displayGroups,
   groupRefs,
+  hasNextChapter,
   hoverEdge,
   imageWrapRef,
   isGroupPreloaded,
@@ -347,6 +349,12 @@ export const ReaderArea = memo(function ReaderArea({
             })}
           </div>
         ))}
+        {hasNextChapter && (
+          <div
+            className="UI Dummy nextCha"
+            onClick={() => navigateGroupOrChapter(1)}
+          ></div>
+        )}
       </div>
       <div
         className={`hover-prev${hoverEdge === 'prev' ? ' viz nodelay' : ''}`}
