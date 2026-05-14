@@ -507,6 +507,7 @@ function AppContent() {
                   decryptedSrcs={decryptedSrcs}
                   tooWideGroups={tooWideGroups}
                   hasNextChapter={hasNextChapter}
+                  goToAdjacentChapter={goToAdjacentChapterFromReader}
                 />
 
                 <ZoomControls

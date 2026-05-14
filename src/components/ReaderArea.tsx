@@ -39,6 +39,7 @@ interface ReaderAreaProps {
   showZoomControls: () => void;
   syncActiveGroupFromScroll: () => void;
   tooWideGroups: Record<string, true>;
+  goToAdjacentChapter: (delta: -1 | 1) => void;
 }
 
 const SELECTOR_PROXIMITY_PX = 72;
@@ -80,6 +81,7 @@ export const ReaderArea = memo(function ReaderArea({
   showZoomControls,
   syncActiveGroupFromScroll,
   tooWideGroups,
+  goToAdjacentChapter,
 }: ReaderAreaProps) {
   const pointerGestureRef = useRef<PointerGestureState>(
     createIdlePointerGestureState(),
@@ -352,7 +354,10 @@ export const ReaderArea = memo(function ReaderArea({
         {hasNextChapter && (
           <div
             className="UI Dummy nextCha"
-            onClick={() => navigateGroupOrChapter(1)}
+            onClick={(e) => {
+              e.stopPropagation();
+              goToAdjacentChapter(1);
+            }}
           ></div>
         )}
       </div>
