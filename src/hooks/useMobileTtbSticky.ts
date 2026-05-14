@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useState, type RefObject } from 'react';
 
-import {
-  getReaderStickyElements,
-  READER_STICKY_CLASS,
-} from '../lib/readerDom';
+import { getReaderStickyElements, READER_STICKY_CLASS } from '../lib/readerDom';
 import type { ReaderSettings } from '../useSettings';
 
 type UpdateSetting = <
