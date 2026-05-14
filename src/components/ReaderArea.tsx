@@ -22,9 +22,12 @@ interface ReaderAreaProps {
   hoverEdge: 'next' | 'prev' | null;
   imageWrapRef: RefObject<HTMLDivElement | null>;
   isGroupPreloaded: (index: number) => boolean;
+  isMobile: boolean;
   isPasswordMode: boolean;
   isScrollReady: boolean;
+  isTtb: boolean;
   navigateGroupOrChapter: (delta: -1 | 1) => void;
+  onMobileTtbTap: () => void;
   onPageLoad: (pageId: string) => void;
   performVerticalPageTurnOrChapter: (direction: 1 | -1) => void;
   preloadImageRefs: RefObject<Array<HTMLImageElement | null>>;
@@ -59,9 +62,12 @@ export const ReaderArea = memo(function ReaderArea({
   hoverEdge,
   imageWrapRef,
   isGroupPreloaded,
+  isMobile,
   isPasswordMode,
   isScrollReady,
+  isTtb,
   navigateGroupOrChapter,
+  onMobileTtbTap,
   onPageLoad,
   performVerticalPageTurnOrChapter,
   preloadImageRefs,
@@ -79,6 +85,11 @@ export const ReaderArea = memo(function ReaderArea({
   const suppressClickRef = useRef(false);
 
   const handleAreaClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (isMobile && isTtb) {
+      onMobileTtbTap();
+      return;
+    }
+
     if (suppressClickRef.current) {
       suppressClickRef.current = false;
       return;
@@ -287,7 +298,7 @@ export const ReaderArea = memo(function ReaderArea({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onScroll={syncActiveGroupFromScroll}
+        onScroll={isTtb ? undefined : syncActiveGroupFromScroll}
         ref={imageWrapRef}
         style={{ visibility: isScrollReady ? 'visible' : 'hidden' }}
         tabIndex={-1}

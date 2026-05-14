@@ -14,6 +14,7 @@ import { useReaderHistory } from './hooks/useReaderHistory';
 import { useInitialScroll } from './hooks/useInitialScroll';
 import { useImageDecryptor } from './hooks/useImageDecryptor';
 import { useKeyboardHandler } from './hooks/useKeyboardHandler';
+import { useMobileTtbSticky } from './hooks/useMobileTtbSticky';
 import { useReaderPreload } from './hooks/useReaderPreload';
 import { useReaderSession } from './hooks/useReaderSession';
 import { useReaderUiState } from './hooks/useReaderUiState';
@@ -44,6 +45,8 @@ function AppContent() {
     updateSetting,
   } = useSettings();
   const imageWrapRef = useRef<HTMLDivElement | null>(null);
+  const mainRef = useRef<HTMLElement | null>(null);
+  const readerPortalRef = useRef<HTMLDivElement | null>(null);
   const groupRefs = useRef<Array<HTMLDivElement | null>>([]);
   const currentPageRef = useRef(-1);
   const historyPageRef = useRef<number | null>(null);
@@ -112,6 +115,7 @@ function AppContent() {
   const activeGroup = displayGroups[activeGroupIndex];
   const hasAdjacentChapters = parentChapters.length > 1;
   const isRtl = settings.lyt.direction === 'rtl';
+  const isTtb = settings.lyt.direction === 'ttb';
   const isAtFirstGroup = activeGroupIndex === 0;
   const isAtLastGroup =
     displayGroups.length > 0 && activeGroupIndex === displayGroups.length - 1;
@@ -164,6 +168,8 @@ function AppContent() {
     displayGroups,
     groupRefs,
     imageWrapRef,
+    mainRef,
+    scrollContainerRef: readerPortalRef,
     isScrollReady,
     isOpen,
     setActiveGroupIndex,
@@ -201,6 +207,14 @@ function AppContent() {
     imageLoadVersion,
     isOpen,
     settings,
+  });
+  const { handleTtbTap, isMobile } = useMobileTtbSticky({
+    isOpen,
+    isTtb,
+    mainRef,
+    scrollContainerRef: readerPortalRef,
+    settings,
+    updateSetting,
   });
 
   useInitialScroll({
@@ -389,7 +403,7 @@ function AppContent() {
   }, [activePage, displayGroups.length, isOpen]);
 
   return (
-    <>
+    <div style={themeStyle as CSSProperties}>
       <button
         className="truyendrive-launcher"
         onClick={() => openComicMode()}
@@ -400,16 +414,18 @@ function AppContent() {
       </button>
 
       {folderMode === 'chapters' && !isOpen && !isAutoOpening && (
-        <main id="rdr-main" style={themeStyle as CSSProperties} tabIndex={-1}>
-          <ChapterList
-            chapters={chapters}
-            folderDetails={folderDetails}
-            onClose={() => resetReaderState(true)}
-            onSelectChapter={handleSelectChapter}
-            statusMessage={statusMessage}
-            title={readerTitle}
-          />
-        </main>
+        <div className="truyendrive-portal">
+          <main tabIndex={-1}>
+            <ChapterList
+              chapters={chapters}
+              folderDetails={folderDetails}
+              onClose={() => resetReaderState(true)}
+              onSelectChapter={handleSelectChapter}
+              statusMessage={statusMessage}
+              title={readerTitle}
+            />
+          </main>
+        </div>
       )}
 
       {isModePickerOpen && !isAutoOpening && (
@@ -419,98 +435,98 @@ function AppContent() {
       {isOpen && (
         <>
           <style>{readerStyles}</style>
+          <div className="truyendrive-portal" ref={readerPortalRef}>
+            <div className={getRootClasses(settings)}>
+              <main ref={mainRef} tabIndex={-1}>
+                <ReaderSidebar
+                  activeGroup={activeGroup}
+                  activeChapterIndex={activeChapterIndex}
+                  activeGroupIndex={activeGroupIndex}
+                  logicalActiveGroupIndex={logicalActiveGroupIndex}
+                  activePage={activePage}
+                  activePageNumber={activePageNumber}
+                  closeComicMode={closeComicMode}
+                  copyShareUrl={copyShareUrl}
+                  cycleSetting={cycleSetting}
+                  displayGroups={displayGroups}
+                  folderMode={folderMode}
+                  goToAdjacentChapter={goToAdjacentChapterFromReader}
+                  goToAdjacentGroup={goToAdjacentGroup}
+                  goToChapterAtIndex={goToChapterAtIndexFromReader}
+                  images={images}
+                  isPasswordMode={isPasswordMode}
+                  jumpToChapterStart={jumpToChapterStart}
+                  parentChapters={parentChapters}
+                  password={password}
+                  readerTitle={readerTitle}
+                  requestPassword={requestPassword}
+                  scrollToGroup={scrollToGroup}
+                  setIsSettingsOpen={setIsSettingsOpen}
+                  setSettingsTab={setSettingsTab}
+                  settings={settings}
+                  statusMessage={statusMessage}
+                  toggleSetting={toggleSetting}
+                />
 
-          <main
-            className={getRootClasses(settings)}
-            id="rdr-main"
-            style={themeStyle as CSSProperties}
-            tabIndex={-1}
-          >
-            <ReaderSidebar
-              activeGroup={activeGroup}
-              activeChapterIndex={activeChapterIndex}
-              activeGroupIndex={activeGroupIndex}
-              logicalActiveGroupIndex={logicalActiveGroupIndex}
-              activePage={activePage}
-              activePageNumber={activePageNumber}
-              closeComicMode={closeComicMode}
-              copyShareUrl={copyShareUrl}
-              cycleSetting={cycleSetting}
-              displayGroups={displayGroups}
-              folderMode={folderMode}
-              goToAdjacentChapter={goToAdjacentChapterFromReader}
-              goToAdjacentGroup={goToAdjacentGroup}
-              goToChapterAtIndex={goToChapterAtIndexFromReader}
-              images={images}
-              isPasswordMode={isPasswordMode}
-              jumpToChapterStart={jumpToChapterStart}
-              parentChapters={parentChapters}
-              password={password}
-              readerTitle={readerTitle}
-              requestPassword={requestPassword}
-              scrollToGroup={scrollToGroup}
-              setIsSettingsOpen={setIsSettingsOpen}
-              setSettingsTab={setSettingsTab}
-              settings={settings}
-              statusMessage={statusMessage}
-              toggleSetting={toggleSetting}
-            />
+                <PageSelector
+                  activeGroupIndex={activeGroupIndex}
+                  activePageNumber={activePageNumber}
+                  displayGroups={displayGroups}
+                  direction={settings.lyt.direction}
+                  isGroupLoaded={isGroupLoaded}
+                  isSelectorVisible={isSelectorVisible}
+                  pageCount={images.length}
+                  scrollToGroup={scrollToGroup}
+                />
 
-            <PageSelector
-              activeGroupIndex={activeGroupIndex}
-              activePageNumber={activePageNumber}
-              displayGroups={displayGroups}
-              direction={settings.lyt.direction}
-              isGroupLoaded={isGroupLoaded}
-              isSelectorVisible={isSelectorVisible}
-              pageCount={images.length}
-              scrollToGroup={scrollToGroup}
-            />
+                <ReaderArea
+                  displayGroups={displayGroups}
+                  groupRefs={groupRefs}
+                  hoverEdge={hoverEdge}
+                  imageWrapRef={imageWrapRef}
+                  isGroupPreloaded={isGroupPreloaded}
+                  isMobile={isMobile}
+                  isPasswordMode={isPasswordMode}
+                  isScrollReady={isScrollReady}
+                  isTtb={isTtb}
+                  navigateGroupOrChapter={navigateGroupOrChapter}
+                  onMobileTtbTap={handleTtbTap}
+                  onPageLoad={handlePageLoad}
+                  performVerticalPageTurnOrChapter={
+                    performVerticalPageTurnOrChapter
+                  }
+                  preloadImageRefs={preloadImageRefs}
+                  setHoverEdge={setHoverEdge}
+                  setImageLoadVersion={setImageLoadVersion}
+                  settings={settings}
+                  showPageSelector={showPageSelector}
+                  showZoomControls={showZoomControls}
+                  syncActiveGroupFromScroll={syncActiveGroupFromScroll}
+                  decryptedSrcs={decryptedSrcs}
+                  tooWideGroups={tooWideGroups}
+                />
 
-            <ReaderArea
-              displayGroups={displayGroups}
-              groupRefs={groupRefs}
-              hoverEdge={hoverEdge}
-              imageWrapRef={imageWrapRef}
-              isGroupPreloaded={isGroupPreloaded}
-              isPasswordMode={isPasswordMode}
-              isScrollReady={isScrollReady}
-              navigateGroupOrChapter={navigateGroupOrChapter}
-              onPageLoad={handlePageLoad}
-              performVerticalPageTurnOrChapter={
-                performVerticalPageTurnOrChapter
-              }
-              preloadImageRefs={preloadImageRefs}
-              setHoverEdge={setHoverEdge}
-              setImageLoadVersion={setImageLoadVersion}
-              settings={settings}
-              showPageSelector={showPageSelector}
-              showZoomControls={showZoomControls}
-              syncActiveGroupFromScroll={syncActiveGroupFromScroll}
-              decryptedSrcs={decryptedSrcs}
-              tooWideGroups={tooWideGroups}
-            />
-
-            <ZoomControls
-              isVisible={isZoomVisible}
-              onZoomChange={handleZoomChange}
-              showZoomControls={showZoomControls}
-              zoom={settings.lyt.zoom}
-            />
-
-            <SettingsModal
-              activeTab={settingsTab}
-              onClose={() => setIsSettingsOpen(false)}
-              onTabChange={setSettingsTab}
-              open={isSettingsOpen}
-              resetCustomTheme={resetCustomTheme}
-              settings={settings}
-              updateSetting={updateSetting}
-            />
-          </main>
+                <ZoomControls
+                  isVisible={isZoomVisible}
+                  onZoomChange={handleZoomChange}
+                  showZoomControls={showZoomControls}
+                  zoom={settings.lyt.zoom}
+                />
+              </main>
+              <SettingsModal
+                activeTab={settingsTab}
+                onClose={() => setIsSettingsOpen(false)}
+                onTabChange={setSettingsTab}
+                open={isSettingsOpen}
+                resetCustomTheme={resetCustomTheme}
+                settings={settings}
+                updateSetting={updateSetting}
+              />
+            </div>
+          </div>
         </>
       )}
-    </>
+    </div>
   );
 }
 

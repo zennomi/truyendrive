@@ -226,7 +226,6 @@ main {
   font-size: 1.2rem;
   display: flex;
   height: 100vh;
-  width: calc(100vw + 24px);
   overflow: hidden;
   max-height: 100vh;
   position: relative;
@@ -712,6 +711,12 @@ aside header > .guya {
   font-size: 0.7em;
   max-height: 50vh;
   overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .rdr-description {
+    display: none;
+  }
 }
 
 .rdr-previews {
@@ -2684,6 +2689,10 @@ _:-webkit-full-screen:not(:root:root),
     padding-bottom: 0.5rem;
   }
 
+  .rdr-aside-buffer {
+    transition: none;
+  }
+
   .selPinned-true.direction-ttb .stick header {
     width: 100%;
     position: fixed;
@@ -2699,7 +2708,6 @@ _:-webkit-full-screen:not(:root:root),
     will-change: transform;
     z-index: 100;
     background: var(--sidebarCol);
-    top: 3rem;
   }
 
   .rdr-image-wrap {
