@@ -88,13 +88,16 @@ export function useReaderPreload({
       : initialGroupIndex;
     const preloadUrls: string[] = [];
 
-    getGroupsInRange(displayGroups, anchorGroupIndex, maxDistance, false).forEach(
-      (group) => {
-        group.pages.forEach((page) => {
-          preloadUrls.push(getImageUrl(page.id));
-        });
-      },
-    );
+    getGroupsInRange(
+      displayGroups,
+      anchorGroupIndex,
+      maxDistance,
+      false,
+    ).forEach((group) => {
+      group.pages.forEach((page) => {
+        preloadUrls.push(getImageUrl(page.id));
+      });
+    });
 
     preloadUrls.forEach((url) => {
       if (preloadCacheRef.current.has(url)) {

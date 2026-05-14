@@ -168,7 +168,11 @@ export function getGroupsInRange(
 ) {
   const groups: ReaderGroup[] = [];
 
-  for (let distance = includeAnchor ? 0 : 1; distance <= maxDistance; distance += 1) {
+  for (
+    let distance = includeAnchor ? 0 : 1;
+    distance <= maxDistance;
+    distance += 1
+  ) {
     const nextGroup = displayGroups[anchorGroupIndex + distance];
     if (nextGroup) {
       groups.push(nextGroup);

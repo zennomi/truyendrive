@@ -329,16 +329,34 @@ function AppContent() {
     ],
   );
 
+  const jumpToChapterStart = useCallback(() => {
+    scrollToGroup(chapterStartGroupIndex);
+  }, [chapterStartGroupIndex, scrollToGroup]);
+
+  const copyShareUrl = useCallback(() => {
+    const url = window.location.href.replace(/\/u\/\d+/, '');
+    navigator.clipboard.writeText(url).catch((err) => {
+      console.error('Failed to copy URL: ', err);
+    });
+  }, []);
+
+  const requestPassword = useCallback(() => {
+    const value = window.prompt('Enter decryption password:', password ?? '');
+    setManualPassword(value && value.length > 0 ? value : null);
+  }, [password]);
+
   useKeyboardHandler({
     closeComicMode,
+    copyShareUrl,
     cycleSetting,
+    goToAdjacentChapter: goToAdjacentChapterFromReader,
     isComicSurfaceOpen,
     isOpen,
     isSettingsOpen,
+    jumpToChapterStart,
     navigateGroupOrChapter,
-    onSetPassword: setManualPassword,
     performVerticalStep,
-    password,
+    requestPassword,
     setIsSettingsOpen,
     settings,
     toggleSetting,
@@ -415,8 +433,8 @@ function AppContent() {
               logicalActiveGroupIndex={logicalActiveGroupIndex}
               activePage={activePage}
               activePageNumber={activePageNumber}
-              chapterStartGroupIndex={chapterStartGroupIndex}
               closeComicMode={closeComicMode}
+              copyShareUrl={copyShareUrl}
               cycleSetting={cycleSetting}
               displayGroups={displayGroups}
               folderMode={folderMode}
@@ -425,10 +443,11 @@ function AppContent() {
               goToChapterAtIndex={goToChapterAtIndexFromReader}
               images={images}
               isPasswordMode={isPasswordMode}
-              onSetPassword={setManualPassword}
+              jumpToChapterStart={jumpToChapterStart}
               parentChapters={parentChapters}
               password={password}
               readerTitle={readerTitle}
+              requestPassword={requestPassword}
               scrollToGroup={scrollToGroup}
               setIsSettingsOpen={setIsSettingsOpen}
               setSettingsTab={setSettingsTab}

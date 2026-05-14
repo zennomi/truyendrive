@@ -1,5 +1,14 @@
 import type { Chapter, FolderMode } from '../hooks/useComicMode';
-import { memo, useCallback, type ChangeEvent, type MouseEvent } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type MouseEvent,
+} from 'react';
 import {
   DIRECTION_OPTIONS,
   FIT_OPTIONS,
@@ -40,8 +49,8 @@ interface ReaderSidebarProps {
   activeChapterIndex: number;
   activePage: number;
   activePageNumber: number;
-  chapterStartGroupIndex: number;
   closeComicMode: () => void;
+  copyShareUrl: () => void;
   cycleSetting: CycleSetting;
   displayGroups: ReaderGroup[];
   folderMode: FolderMode;
@@ -50,11 +59,12 @@ interface ReaderSidebarProps {
   goToChapterAtIndex: (index: number) => void;
   images: DriveImage[];
   isPasswordMode: boolean;
+  jumpToChapterStart: () => void;
   logicalActiveGroupIndex: number;
-  onSetPassword: (pw: string | null) => void;
   parentChapters: Chapter[];
   password: string | null;
   readerTitle: string;
+  requestPassword: () => void;
   scrollToGroup: (index: number, behavior?: ScrollBehavior) => void;
   setIsSettingsOpen: (open: boolean) => void;
   setSettingsTab: (tab: SettingsTab) => void;
@@ -69,8 +79,8 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   activeChapterIndex,
   activePage,
   activePageNumber,
-  chapterStartGroupIndex,
   closeComicMode,
+  copyShareUrl,
   cycleSetting,
   displayGroups,
   folderMode,
@@ -79,11 +89,12 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   goToChapterAtIndex,
   images,
   isPasswordMode,
+  jumpToChapterStart,
   logicalActiveGroupIndex,
-  onSetPassword,
   parentChapters,
   password,
   readerTitle,
+  requestPassword,
   scrollToGroup,
   setIsSettingsOpen,
   setSettingsTab,
@@ -91,6 +102,85 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   statusMessage,
   toggleSetting,
 }: ReaderSidebarProps) {
+  const [tooltip, setTooltip] = useState<{
+    text: string;
+    align: 'right' | null;
+    rect: DOMRect;
+    mouseX: number;
+  } | null>(null);
+  const [isTooltipFaded, setIsTooltipFaded] = useState(false);
+  const tooltipTimeoutRef = useRef<number | null>(null);
+  const tooltipTargetRef = useRef<HTMLElement | null>(null);
+
+  const clearTooltipTimeout = useCallback(() => {
+    if (tooltipTimeoutRef.current !== null) {
+      window.clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearTooltipTimeout, [clearTooltipTimeout]);
+
+  const handleMouseOver = useCallback(
+    (event: MouseEvent<HTMLElement>) => {
+      if (window.innerWidth <= 768) {
+        return;
+      }
+
+      const closestTip = (event.target as HTMLElement).closest<HTMLElement>(
+        '[data-tip]',
+      );
+      if (!closestTip || tooltipTargetRef.current === closestTip) {
+        return;
+      }
+
+      const text = closestTip.getAttribute('data-tip');
+      if (!text) {
+        return;
+      }
+
+      tooltipTargetRef.current = closestTip;
+      setTooltip({
+        text,
+        align:
+          closestTip.getAttribute('data-tip-align') === 'right'
+            ? 'right'
+            : null,
+        rect: closestTip.getBoundingClientRect(),
+        mouseX: event.clientX,
+      });
+      setIsTooltipFaded(false);
+      clearTooltipTimeout();
+      tooltipTimeoutRef.current = window.setTimeout(() => {
+        setIsTooltipFaded(true);
+      }, 3000);
+    },
+    [clearTooltipTimeout],
+  );
+
+  const handleMouseOut = useCallback(
+    (event: MouseEvent<HTMLElement>) => {
+      const closestTip = (event.target as HTMLElement).closest<HTMLElement>(
+        '[data-tip]',
+      );
+      if (!closestTip || tooltipTargetRef.current !== closestTip) {
+        return;
+      }
+
+      if (
+        event.relatedTarget instanceof Node &&
+        closestTip.contains(event.relatedTarget)
+      ) {
+        return;
+      }
+
+      tooltipTargetRef.current = null;
+      setTooltip(null);
+      clearTooltipTimeout();
+    },
+    [clearTooltipTimeout],
+  );
+
   const hasAdjacentChapters = parentChapters.length > 1;
   const isRtl = settings.lyt.direction === 'rtl';
   const isAtFirstGroup = activeGroupIndex === 0;
@@ -128,10 +218,6 @@ export const ReaderSidebar = memo(function ReaderSidebar({
     },
     [],
   );
-
-  const handleJumpToStart = useCallback(() => {
-    scrollToGroup(chapterStartGroupIndex);
-  }, [chapterStartGroupIndex, scrollToGroup]);
 
   const handleOpenSettings = useCallback(() => {
     setSettingsTab('Reader');
@@ -243,11 +329,6 @@ export const ReaderSidebar = memo(function ReaderSidebar({
     toggleSetting('apr', 'previews');
   }, [toggleSetting]);
 
-  const handleSetPassword = useCallback(() => {
-    const value = window.prompt('Enter decryption password:', password ?? '');
-    onSetPassword(value && value.length > 0 ? value : null);
-  }, [onSetPassword, password]);
-
   const handlePreviewClick = useCallback(
     (event: MouseEvent<HTMLImageElement>) => {
       const groupIndex = Number.parseInt(
@@ -261,16 +342,25 @@ export const ReaderSidebar = memo(function ReaderSidebar({
     [scrollToGroup],
   );
 
-  const handleCopyUrl = useCallback((event: MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault();
-    const url = window.location.href.replace(/\/u\/\d+/, '');
-    navigator.clipboard.writeText(url).catch((err) => {
-      console.error('Failed to copy URL: ', err);
-    });
-  }, []);
+  const handleCopyUrl = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault();
+      copyShareUrl();
+    },
+    [copyShareUrl],
+  );
+
+  const tooltipParts = useMemo(
+    () => tooltip?.text.split(/(\[.*?\])/) ?? [],
+    [tooltip],
+  );
 
   return (
-    <aside className="">
+    <aside
+      className=""
+      onMouseOver={handleMouseOver}
+      onMouseOut={handleMouseOut}
+    >
       <div
         className="hide-side UI Button MultiStateButton"
         data-tip="Show/hide sidebar [S]"
@@ -324,7 +414,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
               className="ico-btn UI Button"
               data-password-active={password !== null}
               data-tip="Set/clear decryption password [K]"
-              onClick={handleSetPassword}
+              onClick={requestPassword}
               type="button"
             >
               <svg
@@ -349,7 +439,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
             <button
               className="ico-btn jump"
               data-tip="Jump to chapter... [J]"
-              onClick={handleJumpToStart}
+              onClick={jumpToChapterStart}
               type="button"
             />
             <button
@@ -546,6 +636,44 @@ export const ReaderSidebar = memo(function ReaderSidebar({
           </div>
         </section>
       </div>
+      {tooltip && (
+        <div
+          className={`Tooltippy ${isTooltipFaded ? 'fadeOut' : ''}`}
+          style={{
+            position: 'fixed',
+            display: 'block',
+            zIndex: 3000,
+            ...(tooltip.align === 'right'
+              ? {
+                  left: `${tooltip.rect.right + 4}px`,
+                  top: `${tooltip.rect.top}px`,
+                }
+              : {
+                  bottom: `${window.innerHeight - tooltip.rect.top + 2}px`,
+                  ...(tooltip.mouseX > window.innerWidth / 2
+                    ? {
+                        right: `${window.innerWidth - tooltip.rect.right}px`,
+                        left: 'unset',
+                      }
+                    : {
+                        left: `${tooltip.rect.left}px`,
+                        right: 'unset',
+                      }),
+                }),
+          }}
+        >
+          {tooltipParts.map((part, i) => {
+            if (part.startsWith('[') && part.endsWith(']')) {
+              return (
+                <span key={i} className="Tooltippy-key">
+                  {part.slice(1, -1)}
+                </span>
+              );
+            }
+            return part;
+          })}
+        </div>
+      )}
     </aside>
   );
 });

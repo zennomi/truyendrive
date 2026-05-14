@@ -83,9 +83,12 @@ export function useImageDecryptor(
       ? activeGroupIndex
       : initialGroupIndex;
     const windowedImageIds = new Set(
-      getGroupsInRange(displayGroups, anchorGroupIndex, maxDistance, true).flatMap(
-        (group) => group.pages.map((page) => page.id),
-      ),
+      getGroupsInRange(
+        displayGroups,
+        anchorGroupIndex,
+        maxDistance,
+        true,
+      ).flatMap((group) => group.pages.map((page) => page.id)),
     );
 
     const decryptImages = async () => {

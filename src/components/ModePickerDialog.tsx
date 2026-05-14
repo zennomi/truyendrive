@@ -19,14 +19,48 @@ export const ModePickerDialog = memo(function ModePickerDialog({
   return (
     <>
       <style>{comicStyles}</style>
-      <div id="layers" aria-label="Choose comic mode" role="dialog" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', bottom: 0, zIndex: 99999 }}>
-        <article style={{ minHeight: 'auto', padding: '2rem 3rem', borderRadius: '4px', maxWidth: '45rem' }}>
-          <h2 style={{ marginTop: 0, marginBottom: '1rem', color: 'white', fontSize: '1.5rem' }}>How should this folder open?</h2>
+      <div
+        id="layers"
+        aria-label="Choose comic mode"
+        role="dialog"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bottom: 0,
+          zIndex: 99999,
+        }}
+      >
+        <article
+          style={{
+            minHeight: 'auto',
+            padding: '2rem 3rem',
+            borderRadius: '4px',
+            maxWidth: '45rem',
+          }}
+        >
+          <h2
+            style={{
+              marginTop: 0,
+              marginBottom: '1rem',
+              color: 'white',
+              fontSize: '1.5rem',
+            }}
+          >
+            How should this folder open?
+          </h2>
           <p style={{ color: '#ccc', fontSize: '0.9rem' }}>
-            This folder contains a mix of items, so Comic Mode needs a hint before
-            it can continue.
+            This folder contains a mix of items, so Comic Mode needs a hint
+            before it can continue.
           </p>
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '1rem',
+              marginTop: '2rem',
+              flexWrap: 'wrap',
+            }}
+          >
             <button
               className="manga-link chapter"
               onClick={handleSelectChapters}

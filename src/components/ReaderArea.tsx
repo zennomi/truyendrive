@@ -301,8 +301,9 @@ export const ReaderArea = memo(function ReaderArea({
             }}
           >
             {group.pages.map((page) => {
-              const decryptedSrc =
-                isPasswordMode ? decryptedSrcs.get(page.id) : undefined;
+              const decryptedSrc = isPasswordMode
+                ? decryptedSrcs.get(page.id)
+                : undefined;
 
               if (isPasswordMode && !decryptedSrc) {
                 const aspectRatio =
