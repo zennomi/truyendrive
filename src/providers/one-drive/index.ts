@@ -24,6 +24,7 @@ type OneDriveListSchema = {
   };
   userEmail?: string;
   ViewMetadata?: {
+    Id?: string;
     ListViewXml?: string;
   };
 };
@@ -58,7 +59,7 @@ type FolderParts = {
 const IMAGE_EXTENSIONS = new Set(['avif', 'gif', 'jpeg', 'jpg', 'png', 'webp']);
 const ONEDRIVE_ORIGIN = 'https://onedrive.live.com';
 const PASSWORD_FILE_PATTERN = /^\.password\.(.+)\.truyendrive$/;
-const FIRST_PAGE_RENDER_OPTIONS = 7558951;
+const FIRST_PAGE_RENDER_OPTIONS = 1496871;
 const PAGED_RENDER_OPTIONS = 1232931;
 
 function decodeFolderId(value: string | null) {
@@ -330,26 +331,42 @@ function parseFolderParts(folderId: string): FolderParts {
   };
 }
 
+function parseFolderPartsForRequest(folderId: string): FolderParts {
+  try {
+    return parseFolderParts(folderId);
+  } catch {
+    throw new Error(
+      'Unsupported OneDrive folder URL. Open a personal OneDrive folder and try again.',
+    );
+  }
+}
+
 function buildListEndpoint(cid: string) {
   return `${ONEDRIVE_ORIGIN}/personal/${encodeURIComponent(
     cid,
   )}/_api/web/GetListUsingPath(DecodedUrl=@a1)/RenderListDataAsStream`;
 }
 
-function buildFirstPageUrl({ cid, listUrl, rootFolder }: FolderParts) {
+function buildFirstPageUrl(
+  { cid, listUrl, rootFolder }: FolderParts,
+  viewId?: string,
+) {
   const query = [
     `@a1=${encodeURIComponent(`'${listUrl}'`)}`,
     `RootFolder=${encodeURIComponent(rootFolder)}`,
+    ...(viewId ? [`View=${viewId}`] : []),
+    'SortField=LinkFilename',
+    'SortDir=Asc',
     'TryNewExperienceSingle=TRUE',
   ].join('&');
 
   return `${buildListEndpoint(cid)}?${query}`;
 }
 
-function buildPagedUrl(cid: string, cursor: string) {
-  return `${buildListEndpoint(cid)}${
-    cursor.startsWith('?') ? cursor : `?${cursor}`
-  }`;
+function buildPagedUrl({ cid, listUrl }: FolderParts, cursor: string) {
+  const queryPrefix = `@a1=${encodeURIComponent(`'${listUrl}'`)}&TryNewExperienceSingle=TRUE&`;
+  const normalizedCursor = cursor.startsWith('?') ? cursor.slice(1) : cursor;
+  return `${buildListEndpoint(cid)}?${queryPrefix}${normalizedCursor}`;
 }
 
 function buildRequestBody(renderOptions: number, viewXml?: string) {
@@ -367,13 +384,24 @@ function buildRequestBody(renderOptions: number, viewXml?: string) {
   });
 }
 
-function requestJson<TResponse>(url: string, body: string) {
+function requestJson<TResponse>(url: string, body: string, listUrl?: string) {
   return new Promise<TResponse>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', url, true);
     xhr.withCredentials = true;
     xhr.setRequestHeader('accept', 'application/json;odata=verbose');
     xhr.setRequestHeader('content-type', 'application/json;odata=verbose');
+    xhr.setRequestHeader('application', 'onedrive web consumer');
+    xhr.setRequestHeader('authorization', 'Bearer');
+    xhr.setRequestHeader('scenario', 'ViewList');
+    xhr.setRequestHeader('scenariotype', 'AUO');
+    
+    if (listUrl) {
+      xhr.setRequestHeader(
+        'x-sp-requestresources',
+        `listUrl=${encodeURIComponent(listUrl)}`,
+      );
+    }
 
     xhr.onload = () => {
       if (xhr.status < 200 || xhr.status >= 300) {
@@ -395,11 +423,18 @@ function requestJson<TResponse>(url: string, body: string) {
   });
 }
 
+function hasOneDriveAuthCookie() {
+  return /(?:^|;\s*)(?:MUID|OIDCAuth_[^=]+)=/.test(document.cookie);
+}
+
 export class OneDriveProvider implements DriveProvider {
-  private driveApiBase: string | null = null;
+  private activeCid: string | null = null;
+  private driveApiBaseByCid = new Map<string, string>();
   private error: Error | null = null;
-  private listViewXml: string | null = null;
-  private ownerEmail = 'Unknown';
+  private listViewXmlByFolderId = new Map<string, string>();
+  private viewIdByFolderId = new Map<string, string>();
+  private metadataLoadedByCid = new Set<string>();
+  private ownerEmailByCid = new Map<string, string>();
   private ready = false;
 
   getFolderIdFromUrl() {
@@ -420,7 +455,9 @@ export class OneDriveProvider implements DriveProvider {
   }
 
   getImageUrl(image: ReaderImage) {
-    if (!this.driveApiBase) {
+    const driveApiBase = this.getDriveApiBase();
+
+    if (!driveApiBase || (!image.width && !image.height)) {
       return this.getContentUrl(image.id);
     }
 
@@ -440,13 +477,15 @@ export class OneDriveProvider implements DriveProvider {
 
     const thumbnailWidth = width || max;
     const thumbnailHeight = height || max;
-    return `${this.driveApiBase}/items/${encodeURIComponent(
+    return `${driveApiBase}/items/${encodeURIComponent(
       image.id,
     )}/thumbnails/0/c${thumbnailWidth}x${thumbnailHeight}/content`;
   }
 
   buildFetchUrl(image: ReaderImage) {
-    if (!this.driveApiBase) {
+    const driveApiBase = this.getDriveApiBase();
+
+    if (!driveApiBase) {
       return this.getContentUrl(image.id);
     }
 
@@ -458,31 +497,53 @@ export class OneDriveProvider implements DriveProvider {
       return this.getContentUrl(image.id);
     }
 
-    return `${this.driveApiBase}/items/${encodeURIComponent(
+    return `${driveApiBase}/items/${encodeURIComponent(
       image.id,
     )}/thumbnails/0/c${width}x${height}/content`;
   }
 
-  getContentUrl(id: string) {
-    if (!this.driveApiBase) {
+  private getCurrentCid() {
+    const folderId = this.getFolderIdFromUrl();
+    if (!folderId) {
+      return this.activeCid;
+    }
+
+    try {
+      return parseFolderParts(folderId).cid;
+    } catch {
+      return this.activeCid;
+    }
+  }
+
+  private getDriveApiBase() {
+    const cid = this.getCurrentCid();
+    return cid ? (this.driveApiBaseByCid.get(cid) ?? null) : null;
+  }
+
+  private getContentUrl(id: string) {
+    const driveApiBase = this.getDriveApiBase();
+
+    if (!driveApiBase) {
       return '';
     }
 
-    return `${this.driveApiBase}/items/${encodeURIComponent(id)}/content`;
+    return `${driveApiBase}/items/${encodeURIComponent(id)}/content`;
   }
 
   getThumbnailUrl(imageId: string) {
-    if (!this.driveApiBase) {
+    const driveApiBase = this.getDriveApiBase();
+
+    if (!driveApiBase) {
       return null;
     }
 
-    return `${this.driveApiBase}/items/${encodeURIComponent(
+    return `${driveApiBase}/items/${encodeURIComponent(
       imageId,
     )}/thumbnails/0/c220x220/content`;
   }
 
   async initialize() {
-    if (/MUID=/.test(document.cookie)) {
+    if (hasOneDriveAuthCookie()) {
       this.error = null;
       this.ready = true;
       return;
@@ -509,47 +570,93 @@ export class OneDriveProvider implements DriveProvider {
       await this.initialize();
     }
 
-    const folderParts = parseFolderParts(folderId);
+    const folderParts = parseFolderPartsForRequest(folderId);
+    this.activeCid = folderParts.cid;
+
     const rawResponse = await requestJson<OneDriveWrappedListResponse>(
       cursor
-        ? buildPagedUrl(folderParts.cid, cursor)
-        : buildFirstPageUrl(folderParts),
+        ? buildPagedUrl(folderParts, cursor)
+        : buildFirstPageUrl(
+            folderParts,
+            this.viewIdByFolderId.get(folderParts.rootFolder),
+          ),
       buildRequestBody(
         cursor ? PAGED_RENDER_OPTIONS : FIRST_PAGE_RENDER_OPTIONS,
-        cursor ? (this.listViewXml ?? undefined) : undefined,
+        this.listViewXmlByFolderId.get(folderParts.rootFolder),
       ),
+      folderParts.listUrl,
     );
     const response = unwrapListResponse(rawResponse);
+    this.updateFolderMetadata(folderParts, response);
 
+    return [
+      toFolderPageResult(getRows(response), folderId),
+      getNextHref(response),
+    ];
+  }
+
+  private updateFolderMetadata(
+    folderParts: FolderParts,
+    response: OneDriveListResponse,
+  ) {
     const schema = getListSchema(response);
-    if (schema?.['.driveUrl']) {
-      this.driveApiBase = schema['.driveUrl'].replace(/\/+$/, '');
-    }
-
     const rows = getRows(response);
-    this.driveApiBase =
-      this.driveApiBase ??
+    const driveApiBase =
+      schema?.['.driveUrl']?.replace(/\/+$/, '') ??
       getDriveApiBaseFromRows(rows)?.replace(/\/+$/, '') ??
       null;
 
-    if (schema?.ViewMetadata?.ListViewXml) {
-      this.listViewXml = schema.ViewMetadata.ListViewXml;
+    if (driveApiBase) {
+      this.driveApiBaseByCid.set(folderParts.cid, driveApiBase);
     }
 
-    this.ownerEmail =
-      schema?.userEmail ??
-      schema?.PageContextInfo?.userEmail ??
-      this.ownerEmail;
+    if (schema?.ViewMetadata?.ListViewXml) {
+      this.listViewXmlByFolderId.set(
+        folderParts.rootFolder,
+        schema.ViewMetadata.ListViewXml,
+      );
+    }
 
-    return [toFolderPageResult(rows, folderId), getNextHref(response)];
+    if (schema?.ViewMetadata?.Id) {
+      this.viewIdByFolderId.set(folderParts.rootFolder, schema.ViewMetadata.Id);
+    }
+
+    const ownerEmail = schema?.userEmail ?? schema?.PageContextInfo?.userEmail;
+    if (ownerEmail) {
+      this.ownerEmailByCid.set(folderParts.cid, ownerEmail);
+    }
+
+    this.metadataLoadedByCid.add(folderParts.cid);
   }
 
   async fetchFolderDetails(folderId: string): Promise<FolderDetails> {
-    const rootFolder = parseFolderParts(folderId).rootFolder;
+    if (!this.isReady()) {
+      await this.initialize();
+    }
+
+    const folderParts = parseFolderPartsForRequest(folderId);
+    this.activeCid = folderParts.cid;
+
+    if (!this.metadataLoadedByCid.has(folderParts.cid)) {
+      const rawResponse = await requestJson<OneDriveWrappedListResponse>(
+        buildFirstPageUrl(
+          folderParts,
+          this.viewIdByFolderId.get(folderParts.rootFolder),
+        ),
+        buildRequestBody(
+          FIRST_PAGE_RENDER_OPTIONS,
+          this.listViewXmlByFolderId.get(folderParts.rootFolder),
+        ),
+        folderParts.listUrl,
+      );
+      this.updateFolderMetadata(folderParts, unwrapListResponse(rawResponse));
+    }
+
+    const rootFolder = folderParts.rootFolder;
     const title = decodeURIComponent(rootFolder.split('/').pop() ?? '');
 
     return {
-      ownerEmail: this.ownerEmail,
+      ownerEmail: this.ownerEmailByCid.get(folderParts.cid) ?? 'Unknown',
       thumbnailUrl: null,
       title: title || 'OneDrive Folder',
     };

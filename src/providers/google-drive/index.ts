@@ -16,6 +16,10 @@ import { getAuthUser, isAuthenticated, loadAccount } from './auth';
 
 type DriveFolderItem = any[];
 type FolderDetectionResult = 'chapters' | 'images' | 'mixed' | 'empty';
+type PendingInit = {
+  authUser: string;
+  promise: Promise<void>;
+};
 
 const FOLDER_ID_PATTERN = /\/folders\/([^/?#]+)/;
 const DRIVE_FOLDER_MIME = 'application/vnd.google-apps.folder';
@@ -183,9 +187,9 @@ export class GoogleDriveProvider implements DriveProvider {
   private accountData: DriveAccountData | null = null;
   private authUser = getAuthUser();
   private error: Error | null = null;
+  private initGeneration = 0;
   private isGuest = !isAuthenticated();
-  private pendingInit: Promise<void> | null = null;
-  private pendingInitAuthUser: string | null = null;
+  private pendingInit: PendingInit | null = null;
 
   getFolderIdFromUrl() {
     return window.location.href.match(FOLDER_ID_PATTERN)?.[1] ?? null;
@@ -226,7 +230,7 @@ export class GoogleDriveProvider implements DriveProvider {
     return base;
   }
 
-  getContentUrl(id: string) {
+  private getContentUrl(id: string) {
     const authUser = this.isGuest ? '0' : this.authUser;
     return `https://drive.google.com/u/${authUser}/drive-usercontent/${id}`;
   }
@@ -239,12 +243,12 @@ export class GoogleDriveProvider implements DriveProvider {
     const nextAuthUser = getAuthUser();
 
     if (!isAuthenticated()) {
+      this.initGeneration += 1;
       this.authUser = nextAuthUser;
       this.accountData = null;
       this.error = null;
       this.isGuest = true;
       this.pendingInit = null;
-      this.pendingInitAuthUser = null;
       return;
     }
 
@@ -252,19 +256,24 @@ export class GoogleDriveProvider implements DriveProvider {
       return;
     }
 
-    if (this.pendingInit && this.pendingInitAuthUser === nextAuthUser) {
-      return this.pendingInit;
+    if (!this.isGuest && this.error && this.authUser === nextAuthUser) {
+      return;
     }
 
+    if (this.pendingInit?.authUser === nextAuthUser) {
+      return this.pendingInit.promise;
+    }
+
+    const requestGeneration = this.initGeneration + 1;
+    this.initGeneration = requestGeneration;
     this.authUser = nextAuthUser;
     this.accountData = null;
     this.error = null;
     this.isGuest = false;
-    this.pendingInitAuthUser = nextAuthUser;
 
     const request = loadAccount(nextAuthUser)
       .then((accountData) => {
-        if (this.authUser !== nextAuthUser || this.isGuest) {
+        if (this.initGeneration !== requestGeneration) {
           return;
         }
 
@@ -276,7 +285,7 @@ export class GoogleDriveProvider implements DriveProvider {
         this.error = null;
       })
       .catch((error) => {
-        if (this.authUser !== nextAuthUser || this.isGuest) {
+        if (this.initGeneration !== requestGeneration) {
           return;
         }
 
@@ -286,14 +295,16 @@ export class GoogleDriveProvider implements DriveProvider {
         throw this.error;
       })
       .finally(() => {
-        if (this.pendingInit === request) {
+        if (this.pendingInit?.promise === request) {
           this.pendingInit = null;
-          this.pendingInitAuthUser = null;
         }
       });
 
-    this.pendingInit = request;
-    return this.pendingInit;
+    this.pendingInit = {
+      authUser: nextAuthUser,
+      promise: request,
+    };
+    return request;
   }
 
   isReady() {
