@@ -59,10 +59,11 @@ export function ProviderProvider({
 
   useEffect(() => {
     let isCancelled = false;
+    const isReadyBeforeInit = provider.isReady();
 
     setError(null);
-    setIsLoading(true);
-    setIsReady(provider.isReady());
+    setIsLoading(!isReadyBeforeInit);
+    setIsReady(isReadyBeforeInit);
 
     provider
       .initialize()

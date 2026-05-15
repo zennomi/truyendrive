@@ -1,6 +1,8 @@
 import {
   fetchFolderDetails,
+  fetchFolderDetailsGuest,
   fetchFolderItems,
+  fetchFolderItemsGuest,
   type DriveAccountData,
 } from '../../lib/driveApi';
 import type {
@@ -10,7 +12,7 @@ import type {
   FolderPageResult,
   ReaderImage,
 } from '../types';
-import { getAuthUser, loadAccount } from './auth';
+import { getAuthUser, isAuthenticated, loadAccount } from './auth';
 
 type DriveFolderItem = any[];
 type FolderDetectionResult = 'chapters' | 'images' | 'mixed' | 'empty';
@@ -181,6 +183,7 @@ export class GoogleDriveProvider implements DriveProvider {
   private accountData: DriveAccountData | null = null;
   private authUser = getAuthUser();
   private error: Error | null = null;
+  private isGuest = !isAuthenticated();
   private pendingInit: Promise<void> | null = null;
   private pendingInitAuthUser: string | null = null;
 
@@ -193,11 +196,16 @@ export class GoogleDriveProvider implements DriveProvider {
   }
 
   getImageUrl(id: string) {
+    if (this.isGuest) {
+      return `https://drive.google.com/u/0/drive-usercontent/${id}`;
+    }
+
     return `https://lh3.google.com/u/${this.authUser}/d/${id}`;
   }
 
   getContentUrl(id: string) {
-    return `https://drive.google.com/u/${this.authUser}/drive-usercontent/${id}`;
+    const authUser = this.isGuest ? '0' : this.authUser;
+    return `https://drive.google.com/u/${authUser}/drive-usercontent/${id}`;
   }
 
   getThumbnailUrl(_folderId: string, imageId: string) {
@@ -207,7 +215,17 @@ export class GoogleDriveProvider implements DriveProvider {
   async initialize() {
     const nextAuthUser = getAuthUser();
 
-    if (this.accountData && this.authUser === nextAuthUser) {
+    if (!isAuthenticated()) {
+      this.authUser = nextAuthUser;
+      this.accountData = null;
+      this.error = null;
+      this.isGuest = true;
+      this.pendingInit = null;
+      this.pendingInitAuthUser = null;
+      return;
+    }
+
+    if (!this.isGuest && this.accountData && this.authUser === nextAuthUser) {
       return;
     }
 
@@ -218,29 +236,45 @@ export class GoogleDriveProvider implements DriveProvider {
     this.authUser = nextAuthUser;
     this.accountData = null;
     this.error = null;
+    this.isGuest = false;
     this.pendingInitAuthUser = nextAuthUser;
 
-    this.pendingInit = loadAccount(nextAuthUser)
+    const request = loadAccount(nextAuthUser)
       .then((accountData) => {
+        if (this.authUser !== nextAuthUser || this.isGuest) {
+          return;
+        }
+
+        if (!accountData) {
+          throw new Error('Failed to load account');
+        }
+
         this.accountData = accountData;
         this.error = null;
       })
       .catch((error) => {
+        if (this.authUser !== nextAuthUser || this.isGuest) {
+          return;
+        }
+
         this.accountData = null;
         this.error =
           error instanceof Error ? error : new Error('Failed to load account');
         throw this.error;
       })
       .finally(() => {
-        this.pendingInit = null;
-        this.pendingInitAuthUser = null;
+        if (this.pendingInit === request) {
+          this.pendingInit = null;
+          this.pendingInitAuthUser = null;
+        }
       });
 
+    this.pendingInit = request;
     return this.pendingInit;
   }
 
   isReady() {
-    return this.accountData !== null;
+    return this.isGuest || this.accountData !== null;
   }
 
   getInitError() {
@@ -251,8 +285,18 @@ export class GoogleDriveProvider implements DriveProvider {
     folderId: string,
     cursor?: string,
   ): Promise<[FolderPageResult, string | undefined]> {
-    if (!this.accountData) {
+    if (!this.isReady()) {
       await this.initialize();
+    }
+
+    if (this.isGuest) {
+      const [rawItems, nextCursor] = await fetchFolderItemsGuest(
+        folderId,
+        cursor,
+      );
+      const items = resolveShortcuts(rawItems);
+
+      return [toFolderPageResult(items), nextCursor ?? undefined];
     }
 
     if (!this.accountData) {
@@ -271,8 +315,12 @@ export class GoogleDriveProvider implements DriveProvider {
   }
 
   async fetchFolderDetails(folderId: string): Promise<FolderDetails> {
-    if (!this.accountData) {
+    if (!this.isReady()) {
       await this.initialize();
+    }
+
+    if (this.isGuest) {
+      return fetchFolderDetailsGuest(folderId);
     }
 
     if (!this.accountData) {

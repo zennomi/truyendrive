@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   fetchAccount,
   getAuthUser as getGoogleDriveAuthUser,
+  isAuthenticated,
   type DriveAccountData,
 } from '../../lib/driveApi';
 
@@ -14,11 +15,24 @@ function normalizeError(error: unknown) {
   return error instanceof Error ? error : new Error('Failed to load account');
 }
 
-export function getAuthUser() {
-  return getGoogleDriveAuthUser();
+export { isAuthenticated } from '../../lib/driveApi';
+
+/** Returns 'guest' when no SAPISID cookie is present, otherwise the Drive auth-user index. */
+export function getEffectiveAuthUser() {
+  return isAuthenticated() ? getGoogleDriveAuthUser() : 'guest';
 }
 
-export function loadAccount(authUser = getAuthUser()) {
+export function getAuthUser() {
+  return getEffectiveAuthUser();
+}
+
+export function loadAccount(
+  authUser = getAuthUser(),
+): Promise<DriveAccountData | null> {
+  if (!isAuthenticated()) {
+    return Promise.resolve(null);
+  }
+
   const cachedAccountData = accountCache.get(authUser);
   if (cachedAccountData) {
     return Promise.resolve(cachedAccountData);
@@ -48,7 +62,7 @@ export function useGoogleDriveAuth() {
   const [accountData, setAccountData] = useState<DriveAccountData | null>(null);
   const [authUser, setAuthUser] = useState(() => getAuthUser());
   const [error, setError] = useState<Error | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => isAuthenticated());
 
   useEffect(() => {
     const syncAuthUser = () => {
@@ -73,10 +87,11 @@ export function useGoogleDriveAuth() {
 
   useEffect(() => {
     let isCancelled = false;
+    const shouldLoadAccount = isAuthenticated();
 
     setAccountData(null);
     setError(null);
-    setIsLoading(true);
+    setIsLoading(shouldLoadAccount);
 
     loadAccount(authUser)
       .then((nextAccountData) => {
