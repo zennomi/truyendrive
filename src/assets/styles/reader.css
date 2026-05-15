@@ -2372,7 +2372,7 @@ _:-webkit-full-screen:not(:root:root),
 }
 
 @media (min-width: 699px) {
-  main.sidebar-false > aside {
+  .sidebar-false main > aside {
     margin-left: -16em;
   }
 
