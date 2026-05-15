@@ -29,6 +29,7 @@ import {
 import { getThemeStyle, useSettings } from './useSettings';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { useProvider } from './contexts/ProviderContext';
+import type { ReaderImage } from './providers/types';
 
 function AppContent() {
   const provider = useProvider();
@@ -139,18 +140,23 @@ function AppContent() {
   const readerTitle =
     folderDetails?.title ||
     parentChapters[activeChapterIndex]?.name ||
-    'Google Drive Comic Reader';
+    'Truyen Drive Comic Reader';
   const activeChapterId =
     parentChapters[activeChapterIndex]?.id ?? activeFolderId;
   const password = manualPassword ?? folderPassword ?? urlPassword;
   const imagePassword = folderMode === 'images' ? password : null;
   const isPasswordMode = imagePassword !== null;
   const getImageUrl = useCallback(
-    (id: string) => provider.getImageUrl(id),
+    (image: ReaderImage) => provider.getImageUrl(image),
     [provider],
   );
-  const getContentUrl = useCallback(
-    (id: string) => provider.getContentUrl(id),
+  const buildFetchUrl = useCallback(
+    (image: ReaderImage) => provider.buildFetchUrl(image),
+    [provider],
+  );
+  const getThumbnailUrl = useCallback(
+    (image: ReaderImage) =>
+      provider.getThumbnailUrl(image.id) ?? provider.getImageUrl(image),
     [provider],
   );
   const { decryptedSrcs } = useImageDecryptor(
@@ -161,7 +167,7 @@ function AppContent() {
     chapterStartGroupIndex,
     isScrollReady,
     settings.bhv.preload,
-    getContentUrl,
+    buildFetchUrl,
   );
 
   const {
@@ -467,7 +473,7 @@ function AppContent() {
                   goToAdjacentChapter={goToAdjacentChapterFromReader}
                   goToAdjacentGroup={goToAdjacentGroup}
                   goToChapterAtIndex={goToChapterAtIndexFromReader}
-                  getImageUrl={getImageUrl}
+                  getThumbnailUrl={getThumbnailUrl}
                   images={images}
                   isPasswordMode={isPasswordMode}
                   jumpToChapterStart={jumpToChapterStart}

@@ -8,25 +8,6 @@ import {
 } from '../lib/readerUtils';
 import type { ReaderImage } from '../providers/types';
 
-function buildFetchUrl(
-  image: ReaderImage,
-  getContentUrl: (id: string) => string,
-): string {
-  const base = getContentUrl(image.id);
-  const width = image.width ?? 0;
-  const height = image.height ?? 0;
-
-  if (!width && !height) {
-    return `${base}=w10000`;
-  }
-
-  if (width > 1600 || height > 1600) {
-    return `${base}=w${width}-h${height}`;
-  }
-
-  return base;
-}
-
 function revokeBlobUrls(blobUrls: Map<string, string>) {
   blobUrls.forEach((url) => URL.revokeObjectURL(url));
   blobUrls.clear();
@@ -40,7 +21,7 @@ export function useImageDecryptor(
   initialGroupIndex: number,
   isInitialScrollDone: boolean,
   preloadDistance: number,
-  getContentUrl: (id: string) => string,
+  buildFetchUrl: (image: ReaderImage) => string,
 ) {
   const imageIds = useMemo(() => images.map((image) => image.id), [images]);
   const imageIdKey = useMemo(() => imageIds.join('\n'), [imageIds]);
@@ -116,7 +97,7 @@ export function useImageDecryptor(
           }
 
           const blob = await decryptImageBuffer(
-            buildFetchUrl(image, getContentUrl),
+            buildFetchUrl(image),
             password,
             abortController.signal,
           );
@@ -153,7 +134,7 @@ export function useImageDecryptor(
     activeGroupIndex,
     displayGroups,
     imageById,
-    getContentUrl,
+    buildFetchUrl,
     initialGroupIndex,
     isInitialScrollDone,
     password,

@@ -56,7 +56,7 @@ interface ReaderSidebarProps {
   goToAdjacentChapter: (delta: -1 | 1) => void;
   goToAdjacentGroup: (delta: number) => void;
   goToChapterAtIndex: (index: number) => void;
-  getImageUrl: (id: string) => string;
+  getThumbnailUrl: (image: ReaderImage) => string;
   images: ReaderImage[];
   isPasswordMode: boolean;
   jumpToChapterStart: () => void;
@@ -87,7 +87,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   goToAdjacentChapter,
   goToAdjacentGroup,
   goToChapterAtIndex,
-  getImageUrl,
+  getThumbnailUrl,
   images,
   isPasswordMode,
   jumpToChapterStart,
@@ -577,7 +577,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
           </div>
         </section>
         <section className="rdr-groups UI List Selector Tabs">
-          <div className="UI SimpleListItem">Google Drive folder scan</div>
+          {/* <div className="UI SimpleListItem">Truyen Drive folder scan</div> */}
           <div className="is-active UI SimpleListItem">
             {images.length} image pages detected
           </div>
@@ -617,7 +617,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
                       key={image.id}
                       loading="lazy"
                       onClick={handlePreviewClick}
-                      src={`${getImageUrl(image.id)}=w400-h380-p-k-rw-v1-nu-iv1?auditContext=thumbnail`}
+                      src={getThumbnailUrl(image)}
                     />
                   );
                 })}

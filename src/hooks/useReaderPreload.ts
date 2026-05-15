@@ -5,12 +5,13 @@ import {
   getMaxGroupDistance,
   type ReaderGroup,
 } from '../lib/readerUtils';
+import type { ReaderImage } from '../providers/types';
 
 interface UseReaderPreloadParams {
   activeGroupIndex: number;
   displayGroups: ReaderGroup[];
   initialGroupIndex: number;
-  getImageUrl: (id: string) => string;
+  getImageUrl: (image: ReaderImage) => string;
   isInitialScrollDone: boolean;
   isPasswordMode: boolean;
   isOpen: boolean;
@@ -96,7 +97,7 @@ export function useReaderPreload({
       false,
     ).forEach((group) => {
       group.pages.forEach((page) => {
-        preloadUrls.push(getImageUrl(page.id));
+        preloadUrls.push(getImageUrl(page));
       });
     });
 

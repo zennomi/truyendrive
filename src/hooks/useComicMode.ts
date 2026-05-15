@@ -32,6 +32,14 @@ type FirstPageCache = {
   nextCursor?: string;
 };
 
+function logOpenError(message: string, details: Record<string, unknown>) {
+  console.error(`[TruyenDrive] ${message}`, {
+    href: window.location.href,
+    host: window.location.hostname,
+    ...details,
+  });
+}
+
 function mergeImages(currentImages: ReaderImage[], nextImages: ReaderImage[]) {
   if (nextImages.length === 0) {
     return currentImages;
@@ -182,6 +190,7 @@ export function useComicMode({
     (restorePage = -1) => {
       const folderId = provider.getFolderIdFromUrl();
       if (!folderId) {
+        logOpenError('Failed to open reader: no folder ID found', {});
         window.alert('No folder ID found in the current URL.');
         return;
       }
@@ -322,6 +331,10 @@ export function useComicMode({
     }
 
     if (!isProviderReady) {
+      logOpenError('Failed to open reader: provider is not ready', {
+        activeFolderId,
+        error: providerError,
+      });
       setIsAutoOpening(false);
       setStatusMessage(providerError?.message ?? 'Failed to load account');
       return;
@@ -340,6 +353,24 @@ export function useComicMode({
 
       setIsOpen(true);
       setIsAutoOpening(false);
+      setFolderDetails(null);
+
+      void provider
+        .fetchFolderDetails(activeFolderId)
+        .then((details) => {
+          if (isCancelled || activeFetchIdRef.current !== fetchId) {
+            return;
+          }
+
+          setFolderDetails(details);
+        })
+        .catch(() => {
+          if (isCancelled || activeFetchIdRef.current !== fetchId) {
+            return;
+          }
+
+          setFolderDetails(null);
+        });
 
       while (!isCancelled && activeFetchIdRef.current === fetchId) {
         if (page.password !== null) {
@@ -554,6 +585,11 @@ export function useComicMode({
           return;
         }
 
+        logOpenError('Failed to load folder items', {
+          activeFolderId,
+          error,
+          folderMode,
+        });
         setIsAutoOpening(false);
         setStatusMessage(
           error instanceof Error

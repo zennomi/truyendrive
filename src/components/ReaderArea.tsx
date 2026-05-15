@@ -12,6 +12,7 @@ import {
   type PointerGestureState,
   type ReaderGroup,
 } from '../lib/readerUtils';
+import type { ReaderImage } from '../providers/types';
 import type { ReaderSettings } from '../useSettings';
 
 interface ReaderAreaProps {
@@ -21,7 +22,7 @@ interface ReaderAreaProps {
   hasNextChapter: boolean;
   hoverEdge: 'next' | 'prev' | null;
   imageWrapRef: RefObject<HTMLDivElement | null>;
-  getImageUrl: (id: string) => string;
+  getImageUrl: (image: ReaderImage) => string;
   isGroupPreloaded: (index: number) => boolean;
   isMobile: boolean;
   isPasswordMode: boolean;
@@ -346,7 +347,7 @@ export const ReaderArea = memo(function ReaderArea({
                   key={page.id}
                   loading={isGroupPreloaded(groupIndex) ? 'eager' : 'lazy'}
                   onLoad={handlePageImageLoad}
-                  src={decryptedSrc ?? getImageUrl(page.id)}
+                  src={decryptedSrc ?? getImageUrl(page)}
                 />
               );
             })}

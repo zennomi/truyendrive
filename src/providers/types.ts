@@ -30,9 +30,10 @@ export interface FolderPageResult {
 export interface DriveProvider {
   getFolderIdFromUrl(): string | null;
   getAuthUser(): string;
-  getImageUrl(id: string): string;
+  getImageUrl(image: ReaderImage): string;
+  buildFetchUrl(image: ReaderImage): string;
   getContentUrl(id: string): string;
-  getThumbnailUrl(folderId: string, imageId: string): string | null;
+  getThumbnailUrl(imageId: string): string | null;
   initialize(): Promise<void>;
   isReady(): boolean;
   getInitError(): Error | null;

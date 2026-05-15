@@ -14,7 +14,10 @@ export default defineConfig({
         version: '1.0.1',
         description: 'Best Comic Reader for Google Drive',
         author: 'Zennomi',
-        match: ['https://drive.google.com/drive/*'],
+        match: [
+          'https://drive.google.com/drive/*',
+          'https://onedrive.live.com/*',
+        ],
         icon: 'https://raw.githubusercontent.com/zennomi/truyendrive/main/src/assets/truyendrive.webp',
         updateURL:
           'https://raw.githubusercontent.com/zennomi/truyendrive/release/truyendrive-userscript.meta.js',

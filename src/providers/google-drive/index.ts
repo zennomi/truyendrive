@@ -195,12 +195,35 @@ export class GoogleDriveProvider implements DriveProvider {
     return getAuthUser();
   }
 
-  getImageUrl(id: string) {
+  getImageUrl(image: ReaderImage) {
     if (this.isGuest) {
-      return `https://drive.google.com/u/0/drive-usercontent/${id}`;
+      return `https://drive.google.com/u/0/drive-usercontent/${image.id}`;
     }
 
-    return `https://lh3.google.com/u/${this.authUser}/d/${id}`;
+    return `https://lh3.google.com/u/${this.authUser}/d/${image.id}`;
+  }
+
+  buildFetchUrl(image: ReaderImage) {
+    const base = this.getContentUrl(image.id);
+    const width = image.width ?? 0;
+    const height = image.height ?? 0;
+
+    if (
+      !base.startsWith('https://drive.google.com/') &&
+      !base.startsWith('https://lh3.google.com/')
+    ) {
+      return base;
+    }
+
+    if (!width && !height) {
+      return `${base}=w10000`;
+    }
+
+    if (width > 1600 || height > 1600) {
+      return `${base}=w${width}-h${height}`;
+    }
+
+    return base;
   }
 
   getContentUrl(id: string) {
@@ -208,8 +231,8 @@ export class GoogleDriveProvider implements DriveProvider {
     return `https://drive.google.com/u/${authUser}/drive-usercontent/${id}`;
   }
 
-  getThumbnailUrl(_folderId: string, imageId: string) {
-    return `${this.getImageUrl(imageId)}=s220`;
+  getThumbnailUrl(imageId: string) {
+    return `${this.getImageUrl({ id: imageId, width: 0, height: 0 })}=s220`;
   }
 
   async initialize() {
