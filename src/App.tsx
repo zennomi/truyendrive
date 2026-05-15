@@ -28,8 +28,10 @@ import {
 } from './lib/readerUtils';
 import { getThemeStyle, useSettings } from './useSettings';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
+import { useProvider } from './contexts/ProviderContext';
 
 function AppContent() {
+  const provider = useProvider();
   const [initialReaderState] = useState(() =>
     parseReaderStateFromUrl(window.location.href),
   );
@@ -143,6 +145,14 @@ function AppContent() {
   const password = manualPassword ?? folderPassword ?? urlPassword;
   const imagePassword = folderMode === 'images' ? password : null;
   const isPasswordMode = imagePassword !== null;
+  const getImageUrl = useCallback(
+    (id: string) => provider.getImageUrl(id),
+    [provider],
+  );
+  const getContentUrl = useCallback(
+    (id: string) => provider.getContentUrl(id),
+    [provider],
+  );
   const { decryptedSrcs } = useImageDecryptor(
     images,
     imagePassword,
@@ -151,6 +161,7 @@ function AppContent() {
     chapterStartGroupIndex,
     isScrollReady,
     settings.bhv.preload,
+    getContentUrl,
   );
 
   const {
@@ -197,6 +208,7 @@ function AppContent() {
   const { isGroupPreloaded, preloadImageRefs } = useReaderPreload({
     activeGroupIndex,
     displayGroups,
+    getImageUrl,
     initialGroupIndex: chapterStartGroupIndex,
     isInitialScrollDone: isScrollReady,
     isPasswordMode,
@@ -455,6 +467,7 @@ function AppContent() {
                   goToAdjacentChapter={goToAdjacentChapterFromReader}
                   goToAdjacentGroup={goToAdjacentGroup}
                   goToChapterAtIndex={goToChapterAtIndexFromReader}
+                  getImageUrl={getImageUrl}
                   images={images}
                   isPasswordMode={isPasswordMode}
                   jumpToChapterStart={jumpToChapterStart}
@@ -484,6 +497,7 @@ function AppContent() {
                 <ReaderArea
                   displayGroups={displayGroups}
                   groupRefs={groupRefs}
+                  getImageUrl={getImageUrl}
                   hoverEdge={hoverEdge}
                   imageWrapRef={imageWrapRef}
                   isGroupPreloaded={isGroupPreloaded}

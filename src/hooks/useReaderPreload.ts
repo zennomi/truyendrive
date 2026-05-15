@@ -2,7 +2,6 @@ import { useCallback, useEffect, useEffectEvent, useRef } from 'react';
 
 import {
   getGroupsInRange,
-  getImageUrl,
   getMaxGroupDistance,
   type ReaderGroup,
 } from '../lib/readerUtils';
@@ -11,6 +10,7 @@ interface UseReaderPreloadParams {
   activeGroupIndex: number;
   displayGroups: ReaderGroup[];
   initialGroupIndex: number;
+  getImageUrl: (id: string) => string;
   isInitialScrollDone: boolean;
   isPasswordMode: boolean;
   isOpen: boolean;
@@ -20,6 +20,7 @@ interface UseReaderPreloadParams {
 export function useReaderPreload({
   activeGroupIndex,
   displayGroups,
+  getImageUrl,
   initialGroupIndex,
   isInitialScrollDone,
   isPasswordMode,
@@ -125,6 +126,7 @@ export function useReaderPreload({
   }, [
     activeGroupIndex,
     displayGroups,
+    getImageUrl,
     initialGroupIndex,
     isInitialScrollDone,
     isPasswordMode,

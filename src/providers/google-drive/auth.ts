@@ -1,25 +1,10 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   fetchAccount,
-  getAuthUser,
+  getAuthUser as getGoogleDriveAuthUser,
   type DriveAccountData,
-} from '../lib/driveApi';
-
-type AuthContextValue = {
-  accountData: DriveAccountData | null;
-  error: Error | null;
-  isLoading: boolean;
-};
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+} from '../../lib/driveApi';
 
 const AUTH_USER_POLL_MS = 500;
 const accountCache = new Map<string, DriveAccountData>();
@@ -29,7 +14,11 @@ function normalizeError(error: unknown) {
   return error instanceof Error ? error : new Error('Failed to load account');
 }
 
-function loadAccount(authUser: string) {
+export function getAuthUser() {
+  return getGoogleDriveAuthUser();
+}
+
+export function loadAccount(authUser = getAuthUser()) {
   const cachedAccountData = accountCache.get(authUser);
   if (cachedAccountData) {
     return Promise.resolve(cachedAccountData);
@@ -55,7 +44,7 @@ function loadAccount(authUser: string) {
   return request;
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function useGoogleDriveAuth() {
   const [accountData, setAccountData] = useState<DriveAccountData | null>(null);
   const [authUser, setAuthUser] = useState(() => getAuthUser());
   const [error, setError] = useState<Error | null>(null);
@@ -83,14 +72,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const cachedAccountData = accountCache.get(authUser);
-    if (cachedAccountData) {
-      setAccountData(cachedAccountData);
-      setError(null);
-      setIsLoading(false);
-      return;
-    }
-
     let isCancelled = false;
 
     setAccountData(null);
@@ -121,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [authUser]);
 
-  const value = useMemo(
+  return useMemo(
     () => ({
       accountData,
       error,
@@ -129,15 +110,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }),
     [accountData, error, isLoading],
   );
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-
-  return context;
 }

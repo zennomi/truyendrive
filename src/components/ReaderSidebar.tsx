@@ -20,11 +20,10 @@ import {
 import {
   findGroupIndexForPage,
   getDisplayGroupIndex,
-  getImageUrl,
   pageLabel,
-  type DriveImage,
   type ReaderGroup,
 } from '../lib/readerUtils';
+import type { ReaderImage } from '../providers/types';
 
 type CycleSetting = <
   TCategory extends keyof ReaderSettings,
@@ -57,7 +56,8 @@ interface ReaderSidebarProps {
   goToAdjacentChapter: (delta: -1 | 1) => void;
   goToAdjacentGroup: (delta: number) => void;
   goToChapterAtIndex: (index: number) => void;
-  images: DriveImage[];
+  getImageUrl: (id: string) => string;
+  images: ReaderImage[];
   isPasswordMode: boolean;
   jumpToChapterStart: () => void;
   logicalActiveGroupIndex: number;
@@ -87,6 +87,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   goToAdjacentChapter,
   goToAdjacentGroup,
   goToChapterAtIndex,
+  getImageUrl,
   images,
   isPasswordMode,
   jumpToChapterStart,

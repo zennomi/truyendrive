@@ -6,14 +6,16 @@ import {
   useState,
 } from 'react';
 
-import { useAuth } from '../contexts/AuthContext';
-import {
-  fetchFolderDetails,
-  fetchFolderItems,
-  getAuthUser,
-  type DriveFolderDetails,
-} from '../lib/driveApi';
-import type { DriveImage } from '../lib/readerUtils';
+import { useProvider, useProviderStatus } from '../contexts/ProviderContext';
+import type {
+  Chapter,
+  FolderDetails,
+  FolderMode,
+  FolderPageResult,
+  ReaderImage,
+} from '../providers/types';
+
+export type { Chapter, FolderMode } from '../providers/types';
 
 interface UseComicModeParams {
   beginReaderSession: (initialPage?: number) => void;
@@ -24,177 +26,13 @@ interface UseComicModeParams {
   resetHistoryState: (restoreHistoryUrl: boolean) => void;
 }
 
-type DriveFolderItem = any[];
-type FolderDetectionResult = 'chapters' | 'images' | 'mixed' | 'empty';
 type FirstPageCache = {
   folderId: string;
-  items: DriveFolderItem[];
+  page: FolderPageResult;
   nextCursor?: string;
 };
 
-export type FolderMode = 'chapters' | 'images' | null;
-export type Chapter = {
-  id: string;
-  name: string;
-  creator: string;
-  updatedAt: number;
-};
-
-const FOLDER_ID_PATTERN = /\/folders\/([^/?#]+)/;
-const DRIVE_FOLDER_MIME = 'application/vnd.google-apps.folder';
-const SHORTCUT_MIME = 'application/vnd.google-apps.shortcut';
-const PASSWORD_FILE_PATTERN = /^\.password\.(.+)\.truyendrive$/;
-
-function getFolderIdFromUrl() {
-  return window.location.href.match(FOLDER_ID_PATTERN)?.[1] ?? null;
-}
-
-function findShortcutDetails(item: DriveFolderItem): any[] | null {
-  for (let index = 0; index < item.length; index += 1) {
-    const candidate = item[index];
-
-    if (
-      Array.isArray(candidate) &&
-      typeof candidate[0] === 'string' &&
-      candidate[0].length > 0 &&
-      typeof candidate[2] === 'string' &&
-      candidate[2].startsWith('application/')
-    ) {
-      return candidate;
-    }
-  }
-
-  return null;
-}
-
-function resolveShortcutItem(item: DriveFolderItem): DriveFolderItem {
-  const mimeType = typeof item[3] === 'string' ? item[3] : '';
-  if (mimeType !== SHORTCUT_MIME) {
-    return item;
-  }
-
-  const details = findShortcutDetails(item);
-  if (!details) {
-    return item;
-  }
-
-  const targetItem = Array.isArray(details[4])
-    ? (details[4] as DriveFolderItem)
-    : null;
-  if (targetItem) {
-    return resolveShortcutItem(targetItem);
-  }
-
-  const patchedItem = [...item] as DriveFolderItem;
-  patchedItem[0] = details[0];
-  patchedItem[3] = details[2];
-  return patchedItem;
-}
-
-function resolveShortcuts(items: DriveFolderItem[]) {
-  return items.map(resolveShortcutItem);
-}
-
-function extractPasswordFromItems(items: DriveFolderItem[]): string | null {
-  for (const item of items) {
-    const name = typeof item[2] === 'string' ? item[2] : '';
-    const match = name.match(PASSWORD_FILE_PATTERN);
-    if (match) {
-      return match[1];
-    }
-  }
-
-  return null;
-}
-
-function isPasswordFileItem(item: DriveFolderItem) {
-  const name = typeof item[2] === 'string' ? item[2] : '';
-  return PASSWORD_FILE_PATTERN.test(name);
-}
-
-function extractImages(items: DriveFolderItem[]): DriveImage[] {
-  const images: DriveImage[] = [];
-
-  items.forEach((item) => {
-    const id = typeof item[0] === 'string' ? item[0] : '';
-    const mimeType = typeof item[3] === 'string' ? item[3] : '';
-
-    if (!id || !mimeType.startsWith('image/')) {
-      return;
-    }
-
-    const dimensions = Array.isArray(item[26]) ? item[26] : null;
-    const width = typeof dimensions?.[1] === 'number' ? dimensions[1] : 0;
-    const height = typeof dimensions?.[2] === 'number' ? dimensions[2] : 0;
-
-    images.push({ id, width, height });
-  });
-
-  return images;
-}
-
-function classifyItems(items: DriveFolderItem[]): FolderDetectionResult {
-  const contentItems = items.filter((item) => !isPasswordFileItem(item));
-
-  if (contentItems.length === 0) {
-    return 'empty';
-  }
-
-  let allFolders = true;
-  let allImages = true;
-
-  contentItems.forEach((item) => {
-    const mimeType = typeof item[3] === 'string' ? item[3] : '';
-
-    if (mimeType !== DRIVE_FOLDER_MIME) {
-      allFolders = false;
-    }
-
-    if (!mimeType.startsWith('image/')) {
-      allImages = false;
-    }
-  });
-
-  if (allFolders) {
-    return 'chapters';
-  }
-
-  if (allImages) {
-    return 'images';
-  }
-
-  return 'mixed';
-}
-
-function extractChapters(items: DriveFolderItem[]): Chapter[] {
-  const chapters: Chapter[] = [];
-
-  items.forEach((item) => {
-    const id = typeof item[0] === 'string' ? item[0] : '';
-    const mimeType = typeof item[3] === 'string' ? item[3] : '';
-
-    if (!id || mimeType !== DRIVE_FOLDER_MIME) {
-      return;
-    }
-
-    chapters.push({
-      creator:
-        typeof item[16]?.[7] === 'string' && item[16][7].length > 0
-          ? item[16][7]
-          : 'Unknown',
-      id,
-      name:
-        typeof item[2] === 'string' && item[2].length > 0
-          ? item[2]
-          : 'Untitled',
-      updatedAt: typeof item[9] === 'number' ? item[9] : 0,
-    });
-  });
-
-  return chapters;
-}
-
-function mergeImages(currentImages: DriveImage[], nextImages: DriveImage[]) {
+function mergeImages(currentImages: ReaderImage[], nextImages: ReaderImage[]) {
   if (nextImages.length === 0) {
     return currentImages;
   }
@@ -242,17 +80,21 @@ export function useComicMode({
   onResetUi,
   resetHistoryState,
 }: UseComicModeParams) {
-  const { accountData, error: authError, isLoading: isAuthLoading } = useAuth();
+  const provider = useProvider();
+  const {
+    error: providerError,
+    isLoading: isProviderLoading,
+    isReady: isProviderReady,
+  } = useProviderStatus();
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
-  const [activeAuthUser, setActiveAuthUser] = useState<string | null>(null);
   const [activeChapterIndex, setActiveChapterIndex] = useState(0);
   const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [folderDetails, setFolderDetails] = useState<DriveFolderDetails | null>(
+  const [folderDetails, setFolderDetails] = useState<FolderDetails | null>(
     null,
   );
   const [folderMode, setFolderMode] = useState<FolderMode>(null);
   const [folderPassword, setFolderPassword] = useState<string | null>(null);
-  const [images, setImages] = useState<DriveImage[]>([]);
+  const [images, setImages] = useState<ReaderImage[]>([]);
   const [isAutoOpening, setIsAutoOpening] = useState(
     initialChapterId !== null || initialPage >= 0,
   );
@@ -264,7 +106,7 @@ export function useComicMode({
   const activeFetchIdRef = useRef(0);
   const chaptersRef = useRef<Chapter[]>([]);
   const firstPageCacheRef = useRef<FirstPageCache | null>(null);
-  const imagesRef = useRef<DriveImage[]>([]);
+  const imagesRef = useRef<ReaderImage[]>([]);
   const initialChapterIdRef = useRef(initialChapterId);
   const initialPageRef = useRef(initialPage);
   const initialReaderOpenAttemptedRef = useRef(false);
@@ -274,7 +116,7 @@ export function useComicMode({
     activeFetchIdRef.current += 1;
   }, []);
 
-  const replaceImages = useCallback((nextImages: DriveImage[]) => {
+  const replaceImages = useCallback((nextImages: ReaderImage[]) => {
     imagesRef.current = nextImages;
     setImages(nextImages);
   }, []);
@@ -295,7 +137,6 @@ export function useComicMode({
       firstPageCacheRef.current = null;
       onResetPassword();
       onResetUi();
-      setActiveAuthUser(null);
       setActiveFolderId(null);
       resetParentChapterState();
       replaceChapters([]);
@@ -326,22 +167,22 @@ export function useComicMode({
   }, [resetReaderState]);
 
   const getOpenStatusMessage = useEffectEvent(() => {
-    if (isAuthLoading) {
+    if (isProviderLoading) {
       return 'Loading account...';
     }
 
-    if (accountData) {
+    if (isProviderReady) {
       return 'Detecting folder contents...';
     }
 
-    return authError?.message ?? 'Loading account...';
+    return providerError?.message ?? 'Loading account...';
   });
 
   const openComicMode = useCallback(
     (restorePage = -1) => {
-      const folderId = getFolderIdFromUrl();
+      const folderId = provider.getFolderIdFromUrl();
       if (!folderId) {
-        window.alert('No Google Drive folder ID found in the current URL.');
+        window.alert('No folder ID found in the current URL.');
         return;
       }
 
@@ -349,7 +190,6 @@ export function useComicMode({
       cancelFetchLoop();
       firstPageCacheRef.current = null;
       onResetPassword();
-      setActiveAuthUser(getAuthUser());
       setActiveFolderId(folderId);
       resetParentChapterState();
       replaceChapters([]);
@@ -367,6 +207,7 @@ export function useComicMode({
       cancelFetchLoop,
       getOpenStatusMessage,
       onResetPassword,
+      provider,
       replaceChapters,
       replaceImages,
       resetParentChapterState,
@@ -383,14 +224,14 @@ export function useComicMode({
       return;
     }
 
-    if (!getFolderIdFromUrl()) {
+    if (!provider.getFolderIdFromUrl()) {
       setIsAutoOpening(false);
       return;
     }
 
     initialReaderOpenAttemptedRef.current = true;
     openComicMode(initialPageRef.current);
-  }, [openComicMode]);
+  }, [openComicMode, provider]);
 
   const openChapter = useCallback(
     (
@@ -471,18 +312,18 @@ export function useComicMode({
   );
 
   useEffect(() => {
-    if (!activeFolderId || !activeAuthUser) {
+    if (!activeFolderId) {
       return;
     }
 
-    if (isAuthLoading) {
+    if (isProviderLoading) {
       setStatusMessage('Loading account...');
       return;
     }
 
-    if (!accountData) {
+    if (!isProviderReady) {
       setIsAutoOpening(false);
-      setStatusMessage(authError?.message ?? 'Failed to load account');
+      setStatusMessage(providerError?.message ?? 'Failed to load account');
       return;
     }
 
@@ -491,25 +332,21 @@ export function useComicMode({
     let isCancelled = false;
 
     const processImages = async (
-      initialItems: DriveFolderItem[],
+      initialPage: FolderPageResult,
       initialCursor?: string,
     ) => {
-      let items = initialItems;
+      let page = initialPage;
       let cursor = initialCursor;
 
       setIsOpen(true);
       setIsAutoOpening(false);
 
       while (!isCancelled && activeFetchIdRef.current === fetchId) {
-        const detectedPassword = extractPasswordFromItems(items);
-        if (detectedPassword !== null) {
-          setFolderPassword((current) => current ?? detectedPassword);
+        if (page.password !== null) {
+          setFolderPassword((current) => current ?? page.password);
         }
 
-        const mergedImages = mergeImages(
-          imagesRef.current,
-          extractImages(items),
-        );
+        const mergedImages = mergeImages(imagesRef.current, page.images);
 
         if (mergedImages !== imagesRef.current) {
           replaceImages(mergedImages);
@@ -532,34 +369,33 @@ export function useComicMode({
             : `Loaded ${pageCount} page${pageCount === 1 ? '' : 's'}...`,
         );
 
-        const [rawNextItems, nextCursor] = await fetchFolderItems(
+        const [nextPage, nextCursor] = await provider.fetchFolderPage(
           activeFolderId,
           cursor,
-          accountData,
-          activeAuthUser,
         );
 
         if (isCancelled || activeFetchIdRef.current !== fetchId) {
           return;
         }
 
-        items = resolveShortcuts(rawNextItems);
+        page = nextPage;
         cursor = nextCursor ?? undefined;
       }
     };
 
     const processChapters = async (
-      initialItems: DriveFolderItem[],
+      initialPage: FolderPageResult,
       initialCursor?: string,
     ) => {
-      let items = initialItems;
+      let page = initialPage;
       let cursor = initialCursor;
 
       setIsOpen(false);
       setIsFolderScanComplete(false);
       setFolderDetails(null);
 
-      void fetchFolderDetails(activeFolderId, accountData, activeAuthUser)
+      void provider
+        .fetchFolderDetails(activeFolderId)
         .then((details) => {
           if (isCancelled || activeFetchIdRef.current !== fetchId) {
             return;
@@ -576,14 +412,13 @@ export function useComicMode({
         });
 
       while (!isCancelled && activeFetchIdRef.current === fetchId) {
-        const detectedPassword = extractPasswordFromItems(items);
-        if (detectedPassword !== null) {
-          setFolderPassword((current) => current ?? detectedPassword);
+        if (page.password !== null) {
+          setFolderPassword((current) => current ?? page.password);
         }
 
         const mergedChapters = mergeChapters(
           chaptersRef.current,
-          extractChapters(items),
+          page.chapters,
         );
 
         if (mergedChapters !== chaptersRef.current) {
@@ -607,18 +442,16 @@ export function useComicMode({
             : `Loaded ${chapterCount} chapter${chapterCount === 1 ? '' : 's'}...`,
         );
 
-        const [rawNextItems, nextCursor] = await fetchFolderItems(
+        const [nextPage, nextCursor] = await provider.fetchFolderPage(
           activeFolderId,
           cursor,
-          accountData,
-          activeAuthUser,
         );
 
         if (isCancelled || activeFetchIdRef.current !== fetchId) {
           return;
         }
 
-        items = resolveShortcuts(rawNextItems);
+        page = nextPage;
         cursor = nextCursor ?? undefined;
       }
     };
@@ -632,12 +465,12 @@ export function useComicMode({
 
           if (folderMode === 'chapters') {
             await processChapters(
-              cachedFirstPage.items,
+              cachedFirstPage.page,
               cachedFirstPage.nextCursor,
             );
           } else {
             await processImages(
-              cachedFirstPage.items,
+              cachedFirstPage.page,
               cachedFirstPage.nextCursor,
             );
           }
@@ -645,27 +478,21 @@ export function useComicMode({
           return;
         }
 
-        const [rawItems, nextCursor] = await fetchFolderItems(
+        const [page, nextCursor] = await provider.fetchFolderPage(
           activeFolderId,
           undefined,
-          accountData,
-          activeAuthUser,
         );
 
         if (isCancelled || activeFetchIdRef.current !== fetchId) {
           return;
         }
 
-        const items = resolveShortcuts(rawItems);
-        const detectedPassword = extractPasswordFromItems(items);
-        if (detectedPassword !== null) {
-          setFolderPassword((current) => current ?? detectedPassword);
+        if (page.password !== null) {
+          setFolderPassword((current) => current ?? page.password);
         }
 
         if (folderMode === null) {
-          const classification = classifyItems(items);
-
-          if (classification === 'empty') {
+          if (page.isEmpty) {
             firstPageCacheRef.current = null;
             setIsAutoOpening(false);
             setIsFolderScanComplete(true);
@@ -675,11 +502,11 @@ export function useComicMode({
 
           firstPageCacheRef.current = {
             folderId: activeFolderId,
-            items,
+            page,
             nextCursor: nextCursor ?? undefined,
           };
 
-          if (classification === 'mixed') {
+          if (page.isMixed) {
             if (initialChapterIdRef.current || initialPageRef.current >= 0) {
               const initialMode =
                 initialChapterIdRef.current &&
@@ -704,6 +531,8 @@ export function useComicMode({
             return;
           }
 
+          const classification =
+            page.chapters.length > 0 ? 'chapters' : 'images';
           setIsModePickerOpen(false);
           setFolderMode(classification);
           setIsFolderScanComplete(false);
@@ -716,9 +545,9 @@ export function useComicMode({
         }
 
         if (folderMode === 'chapters') {
-          await processChapters(items, nextCursor ?? undefined);
+          await processChapters(page, nextCursor ?? undefined);
         } else {
-          await processImages(items, nextCursor ?? undefined);
+          await processImages(page, nextCursor ?? undefined);
         }
       } catch (error) {
         if (isCancelled || activeFetchIdRef.current !== fetchId) {
@@ -743,12 +572,12 @@ export function useComicMode({
       }
     };
   }, [
-    accountData,
-    activeAuthUser,
     activeFolderId,
-    authError,
     folderMode,
-    isAuthLoading,
+    isProviderLoading,
+    isProviderReady,
+    provider,
+    providerError,
     replaceChapters,
     replaceImages,
   ]);

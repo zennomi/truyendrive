@@ -9,7 +9,6 @@ import {
 
 import {
   clampIndex,
-  getImageUrl,
   type PointerGestureState,
   type ReaderGroup,
 } from '../lib/readerUtils';
@@ -22,6 +21,7 @@ interface ReaderAreaProps {
   hasNextChapter: boolean;
   hoverEdge: 'next' | 'prev' | null;
   imageWrapRef: RefObject<HTMLDivElement | null>;
+  getImageUrl: (id: string) => string;
   isGroupPreloaded: (index: number) => boolean;
   isMobile: boolean;
   isPasswordMode: boolean;
@@ -60,6 +60,7 @@ function createIdlePointerGestureState(): PointerGestureState {
 export const ReaderArea = memo(function ReaderArea({
   decryptedSrcs,
   displayGroups,
+  getImageUrl,
   groupRefs,
   hasNextChapter,
   hoverEdge,

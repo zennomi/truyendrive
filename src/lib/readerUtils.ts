@@ -1,11 +1,8 @@
 import type { DirectionMode, ReaderSettings } from '../useSettings';
-import { getAuthUser } from './driveApi';
+import type { ReaderImage } from '../providers/types';
 
-export type DriveImage = {
-  id: string;
-  width: number;
-  height: number;
-};
+export type { ReaderImage };
+export type DriveImage = ReaderImage;
 
 export type ReaderPage = {
   id: string;
@@ -45,7 +42,7 @@ export const READER_PAGE_SEARCH_PARAM = 'truyendrive-page';
 export const READER_CHAPTER_SEARCH_PARAM = 'truyendrive-chap';
 
 export function buildPageGroups(
-  images: DriveImage[],
+  images: ReaderImage[],
   spread: ReaderSettings['lyt']['spread'],
   direction: DirectionMode,
 ) {
@@ -86,14 +83,6 @@ export function buildPageGroups(
   }
 
   return direction === 'rtl' ? [...groups].reverse() : groups;
-}
-
-export function getImageUrl(id: string, authUser = getAuthUser()) {
-  return `https://lh3.google.com/u/${authUser}/d/${id}`;
-}
-
-export function getDriveUserContentUrl(id: string, authUser = getAuthUser()) {
-  return `https://drive.google.com/u/${authUser}/drive-usercontent/${id}`;
 }
 
 export function getRootClasses(settings: ReaderSettings) {

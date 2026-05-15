@@ -2,15 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { decryptImageBuffer } from '../lib/imageCrypto';
 import {
-  getDriveUserContentUrl,
   getGroupsInRange,
   getMaxGroupDistance,
-  type DriveImage,
   type ReaderGroup,
 } from '../lib/readerUtils';
+import type { ReaderImage } from '../providers/types';
 
-function buildFetchUrl(image: DriveImage): string {
-  const base = getDriveUserContentUrl(image.id);
+function buildFetchUrl(
+  image: ReaderImage,
+  getContentUrl: (id: string) => string,
+): string {
+  const base = getContentUrl(image.id);
   const width = image.width ?? 0;
   const height = image.height ?? 0;
 
@@ -31,13 +33,14 @@ function revokeBlobUrls(blobUrls: Map<string, string>) {
 }
 
 export function useImageDecryptor(
-  images: DriveImage[],
+  images: ReaderImage[],
   password: string | null,
   displayGroups: ReaderGroup[],
   activeGroupIndex: number,
   initialGroupIndex: number,
   isInitialScrollDone: boolean,
   preloadDistance: number,
+  getContentUrl: (id: string) => string,
 ) {
   const imageIds = useMemo(() => images.map((image) => image.id), [images]);
   const imageIdKey = useMemo(() => imageIds.join('\n'), [imageIds]);
@@ -113,7 +116,7 @@ export function useImageDecryptor(
           }
 
           const blob = await decryptImageBuffer(
-            buildFetchUrl(image),
+            buildFetchUrl(image, getContentUrl),
             password,
             abortController.signal,
           );
@@ -150,7 +153,9 @@ export function useImageDecryptor(
     activeGroupIndex,
     displayGroups,
     imageById,
+    getContentUrl,
     initialGroupIndex,
+    isInitialScrollDone,
     password,
     preloadDistance,
   ]);

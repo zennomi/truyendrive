@@ -1,5 +1,5 @@
 import type { Chapter } from '../hooks/useComicMode';
-import type { DriveFolderDetails } from '../lib/driveApi';
+import type { FolderDetails } from '../providers/types';
 import {
   memo,
   useCallback,
@@ -14,7 +14,7 @@ import logo from '../assets/truyendrive.webp';
 
 interface ChapterListProps {
   chapters: Chapter[];
-  folderDetails: DriveFolderDetails | null;
+  folderDetails: FolderDetails | null;
   onClose: () => void;
   onSelectChapter: (chapterId: string, index: number) => void;
   statusMessage: string;
