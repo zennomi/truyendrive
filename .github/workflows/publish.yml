@@ -36,6 +36,9 @@ jobs:
       - name: Copy encoder.html
         run: cp encoder.html dist/
 
+      - name: Copy icon.png
+        run: cp src/assets/truyendrive.webp dist/icon.webp
+
       - name: Deploy to release branch
         uses: peaceiris/actions-gh-pages@v4
         with:

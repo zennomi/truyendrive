@@ -18,11 +18,11 @@ export default defineConfig({
           'https://drive.google.com/drive/*',
           'https://onedrive.live.com/*',
         ],
-        icon: 'https://raw.githubusercontent.com/zennomi/truyendrive/main/src/assets/truyendrive.webp',
+        icon: 'https://zennomi.github.io/truyendrive/icon.webp',
         updateURL:
-          'https://raw.githubusercontent.com/zennomi/truyendrive/release/truyendrive-userscript.meta.js',
+          'https://zennomi.github.io/truyendrive/truyendrive-userscript.meta.js',
         downloadURL:
-          'https://raw.githubusercontent.com/zennomi/truyendrive/release/truyendrive-userscript.user.js',
+          'https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js',
       },
       build: {
         metaFileName: true,

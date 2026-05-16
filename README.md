@@ -56,7 +56,7 @@ Hướng dẫn chi tiết hơn [tại đây](https://www.tampermonkey.net/faq.ph
 ### Bước 2: Cài đặt Userscript TruyenDrive
 
 1. Mở liên kết đến script:
-   [https://raw.githubusercontent.com/zennomi/truyendrive/release/truyendrive-userscript.user.js](https://raw.githubusercontent.com/zennomi/truyendrive/release/truyendrive-userscript.user.js)
+   [https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js](https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js)
 
 2. Tampermonkey sẽ tự động bắt link và mở ra một trang xác nhận.
 3. Nhấn vào nút **Install** (Cài đặt) để hoàn tất.
