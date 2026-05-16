@@ -8,7 +8,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
       body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+          Arial, sans-serif;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -46,15 +48,15 @@
       label {
         cursor: pointer;
       }
-      input[type="text"],
-      input[type="password"] {
+      input[type='text'],
+      input[type='password'] {
         padding: 10px;
         width: 100%;
         border-radius: 6px;
         border: 1px solid #ccc;
         box-sizing: border-box;
       }
-      input[type="file"] {
+      input[type='file'] {
         padding: 10px;
         width: 100%;
         border-radius: 6px;
@@ -112,33 +114,57 @@
     <div class="container">
       <h2>Mã hóa/Giải mã Ảnh (XOR)</h2>
       <p class="info">
-        Tải lên một hình ảnh, thư mục hoặc file ZIP, nhập mật khẩu để biến đổi ảnh. Cùng một mật khẩu sẽ giải mã ảnh trở lại.
+        Tải lên một hình ảnh, thư mục hoặc file ZIP, nhập mật khẩu để biến đổi
+        ảnh. Cùng một mật khẩu sẽ giải mã ảnh trở lại.
       </p>
 
       <div class="radio-group">
         <label>
-          <input type="radio" name="inputType" id="inputTypeFile" value="file" checked /> Hình ảnh / ZIP
+          <input
+            type="radio"
+            name="inputType"
+            id="inputTypeFile"
+            value="file"
+            checked
+          />
+          Hình ảnh / ZIP
         </label>
         <label>
-          <input type="radio" name="inputType" id="inputTypeFolder" value="folder" /> Thư mục
+          <input
+            type="radio"
+            name="inputType"
+            id="inputTypeFolder"
+            value="folder"
+          />
+          Thư mục
         </label>
       </div>
 
       <div class="form-group">
-        <input type="file" id="fileInput" accept="image/png, image/jpeg, image/webp, application/zip" />
+        <input
+          type="file"
+          id="fileInput"
+          accept="image/png, image/jpeg, image/webp, application/zip"
+        />
       </div>
 
       <div class="form-group">
-        <input type="password" id="password" placeholder="Nhập mật khẩu (Secret Key)" />
+        <input
+          type="password"
+          id="password"
+          placeholder="Nhập mật khẩu (Secret Key)"
+        />
       </div>
 
       <div class="checkbox-group">
         <input type="checkbox" id="genPwdFile" checked />
-        <label for="genPwdFile">Tạo file mật khẩu trong thư mục/ZIP (Mặc định: Bật)</label>
+        <label for="genPwdFile"
+          >Tạo file mật khẩu trong thư mục/ZIP (Mặc định: Bật)</label
+        >
       </div>
 
       <button id="processBtn">Bắt đầu Xử lý</button>
-      
+
       <div class="status" id="statusText"></div>
 
       <!-- Canvas dùng để hiển thị preview cho ảnh đơn -->
@@ -146,36 +172,36 @@
     </div>
 
     <script>
-      const inputTypeFile = document.getElementById("inputTypeFile");
-      const inputTypeFolder = document.getElementById("inputTypeFolder");
-      const fileInput = document.getElementById("fileInput");
-      const passwordInput = document.getElementById("password");
-      const processBtn = document.getElementById("processBtn");
-      const statusText = document.getElementById("statusText");
-      const genPwdFile = document.getElementById("genPwdFile");
-      const canvas = document.getElementById("canvas");
-      const ctx = canvas.getContext("2d");
+      const inputTypeFile = document.getElementById('inputTypeFile');
+      const inputTypeFolder = document.getElementById('inputTypeFolder');
+      const fileInput = document.getElementById('fileInput');
+      const passwordInput = document.getElementById('password');
+      const processBtn = document.getElementById('processBtn');
+      const statusText = document.getElementById('statusText');
+      const genPwdFile = document.getElementById('genPwdFile');
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
 
       // Thay đổi thuộc tính input tuỳ theo chế độ chọn file hay thư mục
       inputTypeFile.onchange = () => {
-        fileInput.removeAttribute("webkitdirectory");
-        fileInput.removeAttribute("multiple");
-        fileInput.accept = "image/png, image/jpeg, image/webp, application/zip";
-        fileInput.value = "";
-        canvas.style.display = "none";
+        fileInput.removeAttribute('webkitdirectory');
+        fileInput.removeAttribute('multiple');
+        fileInput.accept = 'image/png, image/jpeg, image/webp, application/zip';
+        fileInput.value = '';
+        canvas.style.display = 'none';
       };
 
       inputTypeFolder.onchange = () => {
-        fileInput.setAttribute("webkitdirectory", "");
-        fileInput.setAttribute("multiple", "");
-        fileInput.removeAttribute("accept");
-        fileInput.value = "";
-        canvas.style.display = "none";
+        fileInput.setAttribute('webkitdirectory', '');
+        fileInput.setAttribute('multiple', '');
+        fileInput.removeAttribute('accept');
+        fileInput.value = '';
+        canvas.style.display = 'none';
       };
 
       // Hiển thị preview ảnh nếu chọn 1 ảnh duy nhất
       fileInput.onchange = function (e) {
-        canvas.style.display = "none";
+        canvas.style.display = 'none';
         const files = e.target.files;
         if (inputTypeFile.checked && files.length === 1) {
           const file = files[0];
@@ -188,7 +214,7 @@
                 canvas.width = img.width;
                 canvas.height = img.height;
                 ctx.drawImage(img, 0, 0);
-                canvas.style.display = "block";
+                canvas.style.display = 'block';
               };
               img.src = event.target.result;
             };
@@ -209,7 +235,10 @@
 
       // Hash chuỗi mật khẩu thành seed dạng số (Cyrb128)
       function cyrb128(str) {
-        let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
+        let h1 = 1779033703,
+          h2 = 3144134277,
+          h3 = 1013904242,
+          h4 = 2773480762;
         for (let i = 0, k; i < str.length; i++) {
           k = str.charCodeAt(i);
           h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
@@ -232,7 +261,7 @@
 
         for (let i = 0; i < data.length; i += 4) {
           // Chỉ XOR kênh R, G, B. Giữ nguyên Alpha
-          data[i] ^= Math.floor(rand() * 256);     // R
+          data[i] ^= Math.floor(rand() * 256); // R
           data[i + 1] ^= Math.floor(rand() * 256); // G
           data[i + 2] ^= Math.floor(rand() * 256); // B
         }
@@ -245,23 +274,28 @@
           const url = URL.createObjectURL(blob);
           img.onload = () => {
             URL.revokeObjectURL(url);
-            const tempCanvas = document.createElement("canvas");
+            const tempCanvas = document.createElement('canvas');
             tempCanvas.width = img.width;
             tempCanvas.height = img.height;
-            const tempCtx = tempCanvas.getContext("2d");
+            const tempCtx = tempCanvas.getContext('2d');
             tempCtx.drawImage(img, 0, 0);
-            
-            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+
+            const imageData = tempCtx.getImageData(
+              0,
+              0,
+              tempCanvas.width,
+              tempCanvas.height,
+            );
             transformImageData(imageData, password);
             tempCtx.putImageData(imageData, 0, 0);
 
             tempCanvas.toBlob((outBlob) => {
               resolve(outBlob);
-            }, "image/png"); // Luôn xuất PNG để không làm hỏng dữ liệu XOR
+            }, 'image/png'); // Luôn xuất PNG để không làm hỏng dữ liệu XOR
           };
           img.onerror = () => {
             URL.revokeObjectURL(url);
-            reject(new Error("Lỗi khi đọc ảnh."));
+            reject(new Error('Lỗi khi đọc ảnh.'));
           };
           img.src = url;
         });
@@ -269,7 +303,7 @@
 
       // Tải xuống file
       function downloadBlob(blob, filename) {
-        const link = document.createElement("a");
+        const link = document.createElement('a');
         link.download = filename;
         link.href = URL.createObjectURL(blob);
         document.body.appendChild(link);
@@ -284,20 +318,20 @@
         const password = passwordInput.value;
 
         if (files.length === 0 || !password) {
-          alert("Vui lòng chọn file/thư mục và nhập mật khẩu.");
+          alert('Vui lòng chọn file/thư mục và nhập mật khẩu.');
           return;
         }
 
         processBtn.disabled = true;
-        statusText.style.color = "#0056b3";
+        statusText.style.color = '#0056b3';
 
         try {
           const isFolder = inputTypeFolder.checked;
           const firstFileName = files[0].name.toLowerCase();
           const isZip = !isFolder && firstFileName.endsWith('.zip');
-          
+
           if (isFolder || isZip) {
-            statusText.textContent = "Đang đọc danh sách file...";
+            statusText.textContent = 'Đang đọc danh sách file...';
             const zip = new JSZip();
             let inputFiles = [];
 
@@ -308,7 +342,7 @@
               const zipContent = await JSZip.loadAsync(files[0]);
               for (const [path, zipEntry] of Object.entries(zipContent.files)) {
                 if (!zipEntry.dir) {
-                  const blob = await zipEntry.async("blob");
+                  const blob = await zipEntry.async('blob');
                   blob.name = path;
                   blob.webkitRelativePath = path;
                   inputFiles.push(blob);
@@ -319,9 +353,12 @@
             let processedCount = 0;
             for (const file of inputFiles) {
               let filePath = file.webkitRelativePath || file.name;
-              
+
               // Bỏ qua các file rác của hệ điều hành
-              if (filePath.includes('__MACOSX') || filePath.includes('.DS_Store')) {
+              if (
+                filePath.includes('__MACOSX') ||
+                filePath.includes('.DS_Store')
+              ) {
                 continue;
               }
 
@@ -331,7 +368,8 @@
                 try {
                   const outBlob = await transformImageBlob(file, password);
                   // Đổi đuôi thành png vì dữ liệu XOR lưu tốt nhất ở định dạng lossless
-                  filePath = filePath.substring(0, filePath.lastIndexOf('.')) + '.png';
+                  filePath =
+                    filePath.substring(0, filePath.lastIndexOf('.')) + '.png';
                   zip.file(filePath, outBlob);
                 } catch (e) {
                   console.warn(`Không thể xử lý ảnh ${filePath}`, e);
@@ -345,32 +383,36 @@
 
             // Tạo file mật khẩu nếu được chọn
             if (genPwdFile.checked) {
-              zip.file(`.password.${password}.truyendrive`, "");
+              zip.file(`.password.${password}.truyendrive`, '');
             }
 
-            statusText.textContent = "Đang đóng gói ZIP...";
-            const outZipBlob = await zip.generateAsync({ type: "blob" });
-            
-            const outName = isFolder ? "transformed_folder.zip" : files[0].name.replace('.zip', '') + "_transformed.zip";
+            statusText.textContent = 'Đang đóng gói ZIP...';
+            const outZipBlob = await zip.generateAsync({ type: 'blob' });
+
+            const outName = isFolder
+              ? 'transformed_folder.zip'
+              : files[0].name.replace('.zip', '') + '_transformed.zip';
             downloadBlob(outZipBlob, outName);
-            
+
             statusText.textContent = `Đã hoàn tất! Xử lý ${processedCount} file.`;
-            statusText.style.color = "#28a745";
+            statusText.style.color = '#28a745';
           } else {
             // Xử lý ảnh đơn lẻ
             const file = files[0];
             const ext = firstFileName.split('.').pop().toLowerCase();
             if (!['png', 'jpg', 'jpeg', 'webp'].includes(ext)) {
-              alert("Vui lòng chọn ảnh định dạng PNG/JPG/WEBP hoặc file ZIP.");
+              alert('Vui lòng chọn ảnh định dạng PNG/JPG/WEBP hoặc file ZIP.');
               processBtn.disabled = false;
-              statusText.textContent = "";
+              statusText.textContent = '';
               return;
             }
 
-            statusText.textContent = "Đang xử lý ảnh...";
+            statusText.textContent = 'Đang xử lý ảnh...';
             const outBlob = await transformImageBlob(file, password);
-            
-            const outName = file.name.substring(0, file.name.lastIndexOf('.')) + '_transformed.png';
+
+            const outName =
+              file.name.substring(0, file.name.lastIndexOf('.')) +
+              '_transformed.png';
             downloadBlob(outBlob, outName);
 
             // Cập nhật canvas với ảnh sau khi xử lý để xem trước
@@ -383,13 +425,13 @@
             };
             img.src = url;
 
-            statusText.textContent = "Đã hoàn tất!";
-            statusText.style.color = "#28a745";
+            statusText.textContent = 'Đã hoàn tất!';
+            statusText.style.color = '#28a745';
           }
         } catch (err) {
           console.error(err);
-          statusText.textContent = "Có lỗi xảy ra: " + err.message;
-          statusText.style.color = "#dc3545";
+          statusText.textContent = 'Có lỗi xảy ra: ' + err.message;
+          statusText.style.color = '#dc3545';
         } finally {
           processBtn.disabled = false;
         }

@@ -395,7 +395,7 @@ function requestJson<TResponse>(url: string, body: string, listUrl?: string) {
     xhr.setRequestHeader('authorization', 'Bearer');
     xhr.setRequestHeader('scenario', 'ViewList');
     xhr.setRequestHeader('scenariotype', 'AUO');
-    
+
     if (listUrl) {
       xhr.setRequestHeader(
         'x-sp-requestresources',
