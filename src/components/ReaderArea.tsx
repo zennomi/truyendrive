@@ -323,17 +323,21 @@ export const ReaderArea = memo(function ReaderArea({
                 : undefined;
 
               if (isPasswordMode && !decryptedSrc) {
-                const aspectRatio =
-                  page.width && page.height
-                    ? page.width / page.height
-                    : undefined;
+                const hasDimensions = page.width && page.height;
+                const placeholderStyle = hasDimensions
+                  ? {
+                      aspectRatio: page.width / page.height,
+                      width: page.width,
+                      height: page.height,
+                    }
+                  : undefined;
 
                 return (
                   <img
                     alt={`Page ${page.index + 1}`}
                     data-page-id={page.id}
                     key={page.id}
-                    style={aspectRatio ? { aspectRatio } : undefined}
+                    style={placeholderStyle}
                     src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                   />
                 );

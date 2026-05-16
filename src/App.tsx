@@ -238,6 +238,7 @@ function AppContent() {
   });
 
   useInitialScroll({
+    activeFolderId,
     activeGroupIndex,
     chapterStartGroupIndex,
     currentPageRef,

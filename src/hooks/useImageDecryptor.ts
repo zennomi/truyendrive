@@ -13,6 +13,18 @@ function revokeBlobUrls(blobUrls: Map<string, string>) {
   blobUrls.clear();
 }
 
+function retainImageBlobUrls(
+  blobUrls: Map<string, string>,
+  imageIds: Set<string>,
+) {
+  blobUrls.forEach((url, id) => {
+    if (!imageIds.has(id)) {
+      URL.revokeObjectURL(url);
+      blobUrls.delete(id);
+    }
+  });
+}
+
 export function useImageDecryptor(
   images: ReaderImage[],
   password: string | null,
@@ -39,14 +51,44 @@ export function useImageDecryptor(
 
   useEffect(() => {
     decryptGenerationRef.current += 1;
+    pendingIdsRef.current.clear();
+    revokeBlobUrls(blobUrlsRef.current);
     setDecryptedSrcs(new Map());
+  }, [password]);
 
+  useEffect(() => {
     return () => {
       decryptGenerationRef.current += 1;
       pendingIdsRef.current.clear();
       revokeBlobUrls(blobUrlsRef.current);
     };
-  }, [imageIdKey, password]);
+  }, []);
+
+  useEffect(() => {
+    const validImageIds = new Set(imageIds);
+
+    retainImageBlobUrls(blobUrlsRef.current, validImageIds);
+    pendingIdsRef.current.forEach((id) => {
+      if (!validImageIds.has(id)) {
+        pendingIdsRef.current.delete(id);
+      }
+    });
+
+    setDecryptedSrcs((previous) => {
+      let didRemove = false;
+      const next = new Map<string, string>();
+
+      previous.forEach((src, id) => {
+        if (validImageIds.has(id)) {
+          next.set(id, src);
+        } else {
+          didRemove = true;
+        }
+      });
+
+      return didRemove ? next : previous;
+    });
+  }, [imageIdKey, imageIds]);
 
   useEffect(() => {
     const decryptRequest = (decryptRequestRef.current += 1);
