@@ -48,6 +48,9 @@ export function useImageDecryptor(
   const decryptGenerationRef = useRef(0);
   const decryptRequestRef = useRef(0);
   const pendingIdsRef = useRef(new Set<string>());
+  const anchorGroupIndex = isInitialScrollDone
+    ? activeGroupIndex
+    : initialGroupIndex;
 
   useEffect(() => {
     decryptGenerationRef.current += 1;
@@ -105,9 +108,6 @@ export function useImageDecryptor(
       preloadDistance,
       displayGroups.length,
     );
-    const anchorGroupIndex = isInitialScrollDone
-      ? activeGroupIndex
-      : initialGroupIndex;
     const windowedImageIds = new Set(
       getGroupsInRange(
         displayGroups,
@@ -173,12 +173,10 @@ export function useImageDecryptor(
       abortController.abort();
     };
   }, [
-    activeGroupIndex,
+    anchorGroupIndex,
     displayGroups,
     imageById,
     buildFetchUrl,
-    initialGroupIndex,
-    isInitialScrollDone,
     password,
     preloadDistance,
   ]);
