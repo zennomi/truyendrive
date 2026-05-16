@@ -5,11 +5,11 @@ trigger: always_on
 
 This repository is a Vite + React + TypeScript userscript built with `vite-plugin-monkey`.
 
-The app injects a comic-reader UI into Google Drive folder pages rather than running as a normal standalone SPA:
+The app injects a comic-reader UI into live cloud-storage pages instead of running as a standalone SPA:
 
-- `vite.config.ts` builds a browser-installable userscript from `src/main.tsx`.
-- The userscript currently matches `https://drive.google.com/drive/*`.
-- Production output is emitted to `dist/*.user.js`.
+- `vite.config.ts` builds the userscript bundle from `src/main.tsx`.
+- The userscript currently matches both `https://drive.google.com/drive/*` and `https://onedrive.live.com/*`.
+- Production output is emitted to `dist/*.user.js`, with a companion metadata file for userscript updates.
 
 ## Common commands
 
@@ -23,67 +23,55 @@ The app injects a comic-reader UI into Google Drive folder pages rather than run
 
 ## Testing and linting
 
-- There is currently no test runner configured in `package.json`.
+- There is currently no automated test runner configured in `package.json`.
+- There is currently no single-test command because no test framework is set up.
 - There is currently no lint script configured in `package.json`.
-- There is no single-test command yet because no test framework is set up.
 
 ## Architecture
 
-### Build and injection model
+### Build and mount model
 
-- `vite.config.ts` uses `vite-plugin-monkey` with `entry: 'src/main.tsx'`; userscript metadata such as `match`, `name`, and `icon` lives there.
-- `src/main.tsx` creates a host element on the live Google Drive page, attaches a shadow root, and mounts React into that shadow tree.
-- `src/assets/styles/index.css` is injected into the shadow root with `?inline`, while `src/assets/styles/font.css` is injected into `document.head` so the font-face definitions are available globally.
-- This means UI changes must account for both the shadow DOM boundary and the surrounding Google Drive page.
+- `vite.config.ts` owns userscript metadata such as `match`, `icon`, `updateURL`, and `downloadURL`.
+- `src/main.tsx` chooses the active provider from `window.location.hostname`, injects font-face CSS into `document.head`, creates a host element on the live page, attaches a shadow root, and mounts React into that shadow tree.
+- `src/assets/styles/index.css` is injected into the shadow root with `?inline`, while `src/assets/styles/font.css` is injected globally so the custom fonts remain available inside the reader UI.
+- UI changes must account for both the shadow DOM boundary and the surrounding host page.
 
-### Top-level app flow
+### Provider abstraction
 
-- `src/App.tsx` is the orchestration layer for reader state. It combines:
-  - `useComicMode` for folder detection, chapter/page loading, and reader open/close state
-  - `useSettings` for persisted reader preferences and theme variables
-  - `useReaderControls` for scrolling, page/group navigation, and transient overlays
-  - `useReaderHistory` for browser title/history synchronization
-  - `useReaderPreload` for nearby page preloading
-- `src/components/AppErrorBoundary.tsx` is the top-level recovery path; if the reader crashes, it unmounts the reader surface and offers retry/reload actions.
+- `src/providers/types.ts` defines the `DriveProvider` interface used by the rest of the app. Provider-specific logic is meant to stay behind this boundary.
+- `src/contexts/ProviderContext.tsx` owns provider initialization and readiness state. It also watches for account/context changes and re-runs provider initialization when the active user changes.
+- `src/providers/google-drive/index.ts` adapts Google Drive’s internal protojson item responses into the app’s `Chapter`, `ReaderImage`, and `FolderDetails` shapes. It supports both authenticated and guest access.
+- `src/providers/one-drive/index.ts` adapts OneDrive `RenderListDataAsStream` responses into the same app-level shapes and caches per-CID metadata such as API base URLs, owner email, and view XML.
+- `provider.getImageUrl()` and `provider.buildFetchUrl()` intentionally serve different consumers: visible/preloaded images use the display URL, while decrypt/fetch flows use the fetch URL.
 
-### Google Drive data flow
+### App and reader state flow
 
-- `src/lib/driveApi.ts` talks directly to Google Drive internal endpoints using `XMLHttpRequest` with `withCredentials`.
-- Auth headers are derived from the page’s `SAPISID` cookie and the Drive build label exposed on `window`.
-- Folder contents come back as array-shaped protojson responses, not typed REST objects.
-- `src/hooks/useComicMode.ts` is the main loader for Drive data. It:
-  - extracts the current folder ID from the Drive URL
-  - fetches paginated folder contents using continuation tokens
-  - classifies a folder as `chapters`, `images`, `mixed`, or `empty`
-  - resolves Google Drive shortcut items recursively before classification
-  - builds chapter lists from folder items and page lists from image items
-- If a folder contains both subfolders and images, the mode picker is shown and the first fetched page is cached so the user can choose how to open it without refetching.
+- `src/App.tsx` is the orchestration layer. It wires together provider access, persisted settings, folder/chapter loading, reader session/history state, scroll/navigation state, image decryption, preload, and overlay visibility.
+- `src/hooks/useComicMode.ts` is the main content-loading state machine. It asks the current provider for paginated folder data, classifies folders as `chapters`, `images`, `mixed`, or `empty`, merges paginated results, and manages the transitions between launcher, mode picker, chapter list, and reader.
+- Mixed folders are handled in two phases: the first fetched page is cached, the user chooses between chapter mode and image mode, and the chosen flow resumes without refetching that first page.
+- Chapter-to-chapter transitions are coordinated across `App.tsx`, `useComicMode.ts`, `ReaderSidebar.tsx`, and `ReaderArea.tsx` rather than living in one isolated component.
 
-### Reader layout and navigation model
+### Reader layout, navigation, and history
 
-- `src/lib/readerUtils.ts` contains the core page-grouping and navigation helpers.
-- `buildPageGroups` is the central place for spread logic (`1`, `2`, `2-odd`) and direction handling (`ltr`, `rtl`, `ttb`). If page order or grouping changes, inspect this file first.
-- `src/components/ReaderArea.tsx` renders the actual image groups and handles click-to-turn, swipe gestures, scroll syncing, and eager vs lazy image loading.
-- `src/components/ReaderSidebar.tsx`, `PageSelector.tsx`, `ZoomControls.tsx`, and `SettingsModal.tsx` provide the Cubari-style controls around the reading surface.
-- Chapter-to-chapter transitions are coordinated between `App.tsx`, `useComicMode.ts`, and `ReaderSidebar.tsx`; they are not isolated to a single component.
+- `src/lib/readerUtils.ts` contains the core page-grouping and URL/history helpers. `buildPageGroups()` is the central place for spread logic (`1`, `2`, `2-odd`) and direction handling (`ltr`, `rtl`, `ttb`).
+- `src/hooks/useReaderControls.ts` splits behavior between page/group navigation and top-to-bottom scroll navigation.
+- `src/hooks/useReaderHistory.ts` synchronizes browser history and document title while the reader is open.
+- `src/hooks/useReaderSession.ts` snapshots the pre-reader URL/title and restores them when the reader closes.
+- Reader state is encoded in URL query params, primarily `truyendrive-chap` and `truyendrive-page`, with hash parsing kept for older links.
 
-### History, scrolling, and preload behavior
+### Settings, preload, and password-protected images
 
-- `src/hooks/useReaderHistory.ts` owns synthetic browser history integration. Reader history state is marked with `truyendriveReader`, and URLs are updated with the `truyendrive-page-*` hash.
-- `settings.bhv.historyUpdate` changes whether moves replace history, push every move, or only push larger jumps.
-- `src/hooks/useReaderControls.ts` splits behavior between horizontal page/group navigation and top-to-bottom scrolling behavior.
-- `src/hooks/useReaderPreload.ts` preloads nearby groups based on the current group and the configured preload distance; a preload value of `100` is treated as preload-all.
-
-### Settings and persistence
-
-- `src/useSettings.ts` defines the full `ReaderSettings` schema, default values, validation/hydration logic, theme presets, and localStorage persistence.
-- Settings are stored under `truyendrive-reader-settings`, with fallback support for an older `settings` key.
-- Theme colors are converted into CSS custom properties by `getThemeStyle` and applied inline to the reader root.
+- `src/useSettings.ts` defines the full `ReaderSettings` schema, default values, theme presets, validation/hydration logic, and localStorage persistence.
+- Settings are stored under `truyendrive-reader-settings`, with fallback support for the older `settings` key.
+- `src/hooks/useReaderPreload.ts` preloads nearby groups based on the current group; a preload value of `100` means preload all groups.
+- Password-protected folders are detected from files named `.password.<value>.truyendrive`, and the app also accepts a `?password=` query param.
+- `src/hooks/useImageDecryptor.ts` and `src/lib/imageCrypto.ts` only decrypt the active/preloaded image window, so changes to fetch behavior, preload behavior, or provider image URLs need to stay aligned.
 
 ## Notes for future changes
 
 - If you change where the userscript runs or how it mounts, inspect `vite.config.ts` and `src/main.tsx` together.
-- If you change folder scanning or Google Drive compatibility, inspect `src/lib/driveApi.ts` and `src/hooks/useComicMode.ts` together.
+- If you change provider behavior or host compatibility, inspect `src/providers/types.ts`, `src/contexts/ProviderContext.tsx`, and the relevant provider implementation together.
+- If you change folder scanning or item classification, inspect `src/hooks/useComicMode.ts` together with the provider that produces the folder page result.
 - If you change navigation behavior, verify all three reading directions (`ltr`, `rtl`, `ttb`) and both single-page and spread layouts.
-- If you change browser history behavior, verify open/close flows and back-button behavior with `settings.bhv.historyUpdate` modes.
-- Because the reader runs inside a live Google Drive page, UI changes that touch keyboard handling, body overflow, or layout should be tested on an actual Drive folder page rather than only in isolated build output.
+- If you change image fetching or decryption, verify `getImageUrl()`, `buildFetchUrl()`, preload behavior, and password mode together.
+- Because the reader runs inside a live Google Drive or OneDrive page, UI changes that touch keyboard handling, body overflow, scrolling, or layout should be tested on an actual host page rather than only in isolated Vite preview output.
