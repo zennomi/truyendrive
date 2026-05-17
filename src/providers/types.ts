@@ -2,6 +2,10 @@ export type ReaderImage = {
   id: string;
   width: number;
   height: number;
+  url?: string;
+  fetchUrl?: string;
+  thumbnailUrl?: string;
+  requiresDecryption?: boolean;
 };
 
 export type FolderDetails = {
@@ -10,8 +14,14 @@ export type FolderDetails = {
   thumbnailUrl: string | null;
 };
 
+export type DriveResource = {
+  id: string;
+  kind: 'folder' | 'pdf';
+};
+
 export type Chapter = {
   id: string;
+  kind: DriveResource['kind'];
   name: string;
   creator: string;
   updatedAt: number;
@@ -30,6 +40,9 @@ export interface FolderPageResult {
 export interface DriveProvider {
   /** Extracts the provider-specific folder identifier from the current page URL. */
   getFolderIdFromUrl(): string | null;
+
+  /** Extracts the provider-specific resource from the current page URL. */
+  getResourceFromUrl(): DriveResource | null;
 
   /** Returns the active provider account key used to detect account switches. */
   getAuthUser(): string;
@@ -63,6 +76,9 @@ export interface DriveProvider {
     cursor?: string,
   ): Promise<[FolderPageResult, string | undefined]>;
 
-  /** Fetches display metadata for a folder. */
-  fetchFolderDetails(folderId: string): Promise<FolderDetails>;
+  /** Fetches PDF pages as reader images when the provider supports PDFs. */
+  fetchPdfImages(pdfId: string): Promise<ReaderImage[]>;
+
+  /** Fetches display metadata for a folder or file. */
+  fetchFolderDetails(resourceId: string): Promise<FolderDetails>;
 }

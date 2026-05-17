@@ -145,7 +145,12 @@ function AppContent() {
     parentChapters[activeChapterIndex]?.id ?? activeFolderId;
   const password = manualPassword ?? folderPassword ?? urlPassword;
   const imagePassword = folderMode === 'images' ? password : null;
-  const isPasswordMode = imagePassword !== null;
+  const isPasswordMode = useMemo(
+    () =>
+      imagePassword !== null &&
+      images.some((image) => image.requiresDecryption !== false),
+    [imagePassword, images],
+  );
   const getImageUrl = useCallback(
     (image: ReaderImage) => provider.getImageUrl(image),
     [provider],
@@ -156,7 +161,9 @@ function AppContent() {
   );
   const getThumbnailUrl = useCallback(
     (image: ReaderImage) =>
-      provider.getThumbnailUrl(image.id) ?? provider.getImageUrl(image),
+      image.thumbnailUrl ??
+      provider.getThumbnailUrl(image.id) ??
+      provider.getImageUrl(image),
     [provider],
   );
   const { decryptedSrcs } = useImageDecryptor(
@@ -276,9 +283,14 @@ function AppContent() {
   );
 
   const handleSelectChapter = useCallback(
-    (chapterId: string, index: number) => {
+    (_chapterId: string, index: number) => {
+      const chapter = chapters[index];
+      if (!chapter) {
+        return;
+      }
+
       currentPageRef.current = -1;
-      openChapter(chapterId, chapters, index);
+      openChapter(chapter, chapters, index);
     },
     [chapters, openChapter],
   );
