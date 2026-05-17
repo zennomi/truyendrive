@@ -4,11 +4,8 @@ import type { ReaderImage } from '../providers/types';
 export type { ReaderImage };
 export type DriveImage = ReaderImage;
 
-export type ReaderPage = {
-  id: string;
+export type ReaderPage = ReaderImage & {
   index: number;
-  width: number;
-  height: number;
 };
 
 export type ReaderGroup = {
@@ -56,10 +53,8 @@ export function buildPageGroups(
       id: 'group-0',
       pages: [
         {
-          id: images[0].id,
           index: 0,
-          width: images[0].width,
-          height: images[0].height,
+          ...images[0],
         },
       ],
     });
@@ -70,10 +65,8 @@ export function buildPageGroups(
     const pages = images
       .slice(index, index + groupSize)
       .map((image, offset) => ({
-        id: image.id,
         index: index + offset,
-        width: image.width,
-        height: image.height,
+        ...image,
       }));
 
     groups.push({

@@ -16,6 +16,7 @@ export default defineConfig({
         author: 'Zennomi',
         match: [
           'https://drive.google.com/drive/*',
+          'https://drive.google.com/file/*',
           'https://onedrive.live.com/*',
         ],
         icon: 'https://zennomi.github.io/truyendrive/icon.webp',

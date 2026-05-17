@@ -9,6 +9,7 @@ import {
 import { useProvider, useProviderStatus } from '../contexts/ProviderContext';
 import type {
   Chapter,
+  DriveResource,
   FolderDetails,
   FolderMode,
   FolderPageResult,
@@ -27,7 +28,7 @@ interface UseComicModeParams {
 }
 
 type FirstPageCache = {
-  folderId: string;
+  resourceId: string;
   page: FolderPageResult;
   nextCursor?: string;
 };
@@ -94,7 +95,10 @@ export function useComicMode({
     isLoading: isProviderLoading,
     isReady: isProviderReady,
   } = useProviderStatus();
-  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
+  const [activeResource, setActiveResource] = useState<DriveResource | null>(
+    null,
+  );
+  const activeFolderId = activeResource?.id ?? null;
   const [activeChapterIndex, setActiveChapterIndex] = useState(0);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [folderDetails, setFolderDetails] = useState<FolderDetails | null>(
@@ -145,7 +149,7 @@ export function useComicMode({
       firstPageCacheRef.current = null;
       onResetPassword();
       onResetUi();
-      setActiveFolderId(null);
+      setActiveResource(null);
       resetParentChapterState();
       replaceChapters([]);
       setFolderDetails(null);
@@ -188,10 +192,10 @@ export function useComicMode({
 
   const openComicMode = useCallback(
     (restorePage = -1) => {
-      const folderId = provider.getFolderIdFromUrl();
-      if (!folderId) {
-        logOpenError('Failed to open reader: no folder ID found', {});
-        window.alert('Please open a folder first.');
+      const resource = provider.getResourceFromUrl();
+      if (!resource) {
+        logOpenError('Failed to open reader: no supported resource found', {});
+        window.alert('Please open a folder or PDF file first.');
         return;
       }
 
@@ -199,17 +203,19 @@ export function useComicMode({
       cancelFetchLoop();
       firstPageCacheRef.current = null;
       onResetPassword();
-      setActiveFolderId(folderId);
+      setActiveResource(resource);
       resetParentChapterState();
       replaceChapters([]);
       setFolderDetails(null);
-      setFolderMode(null);
+      setFolderMode(resource.kind === 'pdf' ? 'images' : null);
       setFolderPassword(null);
       setIsFolderScanComplete(false);
       setIsModePickerOpen(false);
       replaceImages([]);
-      setIsOpen(false);
-      setStatusMessage(getOpenStatusMessage());
+      setIsOpen(resource.kind === 'pdf');
+      setStatusMessage(
+        resource.kind === 'pdf' ? 'Loading pages...' : getOpenStatusMessage(),
+      );
     },
     [
       beginReaderSession,
@@ -233,7 +239,7 @@ export function useComicMode({
       return;
     }
 
-    if (!provider.getFolderIdFromUrl()) {
+    if (!provider.getResourceFromUrl()) {
       setIsAutoOpening(false);
       return;
     }
@@ -244,13 +250,13 @@ export function useComicMode({
 
   const openChapter = useCallback(
     (
-      chapterId: string,
+      chapter: Chapter,
       nextParentChapters: Chapter[] = [],
       nextActiveChapterIndex = 0,
     ) => {
       cancelFetchLoop();
       firstPageCacheRef.current = null;
-      setActiveFolderId(chapterId);
+      setActiveResource({ id: chapter.id, kind: chapter.kind });
       setActiveChapterIndex(nextActiveChapterIndex);
       setParentChapters(nextParentChapters);
       replaceChapters([]);
@@ -283,7 +289,7 @@ export function useComicMode({
         return;
       }
 
-      openChapter(targetChapter.id, parentChapters, nextIndex);
+      openChapter(targetChapter, parentChapters, nextIndex);
     },
     [activeChapterIndex, activeFolderId, openChapter, parentChapters],
   );
@@ -302,7 +308,7 @@ export function useComicMode({
   const selectMode = useCallback(
     (mode: 'chapters' | 'images') => {
       const cachedPage = firstPageCacheRef.current;
-      if (!cachedPage || cachedPage.folderId !== activeFolderId) {
+      if (!cachedPage || cachedPage.resourceId !== activeFolderId) {
         return;
       }
 
@@ -321,9 +327,11 @@ export function useComicMode({
   );
 
   useEffect(() => {
-    if (!activeFolderId) {
+    if (!activeResource) {
       return;
     }
+
+    const resourceId = activeResource.id;
 
     if (isProviderLoading) {
       setStatusMessage('Loading account...');
@@ -332,7 +340,7 @@ export function useComicMode({
 
     if (!isProviderReady) {
       logOpenError('Failed to open reader: provider is not ready', {
-        activeFolderId,
+        resourceId,
         error: providerError,
       });
       setIsAutoOpening(false);
@@ -344,19 +352,9 @@ export function useComicMode({
     activeFetchIdRef.current = fetchId;
     let isCancelled = false;
 
-    const processImages = async (
-      initialPage: FolderPageResult,
-      initialCursor?: string,
-    ) => {
-      let page = initialPage;
-      let cursor = initialCursor;
-
-      setIsOpen(true);
-      setIsAutoOpening(false);
-      setFolderDetails(null);
-
+    const loadFolderDetails = (nextResourceId: string) => {
       void provider
-        .fetchFolderDetails(activeFolderId)
+        .fetchFolderDetails(nextResourceId)
         .then((details) => {
           if (isCancelled || activeFetchIdRef.current !== fetchId) {
             return;
@@ -371,6 +369,19 @@ export function useComicMode({
 
           setFolderDetails(null);
         });
+    };
+
+    const processImages = async (
+      initialPage: FolderPageResult,
+      initialCursor?: string,
+    ) => {
+      let page = initialPage;
+      let cursor = initialCursor;
+
+      setIsOpen(true);
+      setIsAutoOpening(false);
+      setFolderDetails(null);
+      loadFolderDetails(resourceId);
 
       while (!isCancelled && activeFetchIdRef.current === fetchId) {
         if (page.password !== null) {
@@ -401,7 +412,7 @@ export function useComicMode({
         );
 
         const [nextPage, nextCursor] = await provider.fetchFolderPage(
-          activeFolderId,
+          resourceId,
           cursor,
         );
 
@@ -414,6 +425,27 @@ export function useComicMode({
       }
     };
 
+    const processPdf = async (pdfId: string) => {
+      setIsAutoOpening(false);
+      setIsFolderScanComplete(false);
+      setFolderDetails(null);
+      loadFolderDetails(pdfId);
+
+      const pdfImages = await provider.fetchPdfImages(pdfId);
+
+      if (isCancelled || activeFetchIdRef.current !== fetchId) {
+        return;
+      }
+
+      replaceImages(pdfImages);
+      setIsFolderScanComplete(true);
+      setStatusMessage(
+        pdfImages.length === 0
+          ? 'No pages found in this PDF'
+          : `Loaded ${pdfImages.length} page${pdfImages.length === 1 ? '' : 's'}`,
+      );
+    };
+
     const processChapters = async (
       initialPage: FolderPageResult,
       initialCursor?: string,
@@ -424,23 +456,7 @@ export function useComicMode({
       setIsOpen(false);
       setIsFolderScanComplete(false);
       setFolderDetails(null);
-
-      void provider
-        .fetchFolderDetails(activeFolderId)
-        .then((details) => {
-          if (isCancelled || activeFetchIdRef.current !== fetchId) {
-            return;
-          }
-
-          setFolderDetails(details);
-        })
-        .catch(() => {
-          if (isCancelled || activeFetchIdRef.current !== fetchId) {
-            return;
-          }
-
-          setFolderDetails(null);
-        });
+      loadFolderDetails(resourceId);
 
       while (!isCancelled && activeFetchIdRef.current === fetchId) {
         if (page.password !== null) {
@@ -474,7 +490,7 @@ export function useComicMode({
         );
 
         const [nextPage, nextCursor] = await provider.fetchFolderPage(
-          activeFolderId,
+          resourceId,
           cursor,
         );
 
@@ -491,7 +507,12 @@ export function useComicMode({
       try {
         const cachedFirstPage = firstPageCacheRef.current;
 
-        if (folderMode && cachedFirstPage?.folderId === activeFolderId) {
+        if (activeResource.kind === 'pdf') {
+          await processPdf(activeResource.id);
+          return;
+        }
+
+        if (folderMode && cachedFirstPage?.resourceId === resourceId) {
           firstPageCacheRef.current = null;
 
           if (folderMode === 'chapters') {
@@ -510,7 +531,7 @@ export function useComicMode({
         }
 
         const [page, nextCursor] = await provider.fetchFolderPage(
-          activeFolderId,
+          activeResource.id,
           undefined,
         );
 
@@ -532,7 +553,7 @@ export function useComicMode({
           }
 
           firstPageCacheRef.current = {
-            folderId: activeFolderId,
+            resourceId,
             page,
             nextCursor: nextCursor ?? undefined,
           };
@@ -541,7 +562,7 @@ export function useComicMode({
             if (initialChapterIdRef.current || initialPageRef.current >= 0) {
               const initialMode =
                 initialChapterIdRef.current &&
-                initialChapterIdRef.current !== activeFolderId
+                initialChapterIdRef.current !== resourceId
                   ? 'chapters'
                   : 'images';
 
@@ -586,7 +607,8 @@ export function useComicMode({
         }
 
         logOpenError('Failed to load folder items', {
-          activeFolderId,
+          resourceId,
+          activeResource,
           error,
           folderMode,
         });
@@ -608,7 +630,7 @@ export function useComicMode({
       }
     };
   }, [
-    activeFolderId,
+    activeResource,
     folderMode,
     isProviderLoading,
     isProviderReady,
@@ -639,9 +661,15 @@ export function useComicMode({
       return;
     }
 
+    const chapter = chapters[chapterIndex];
+    if (!chapter) {
+      setIsAutoOpening(false);
+      return;
+    }
+
     initialChapterOpenAttemptedRef.current = true;
     setIsAutoOpening(false);
-    openChapter(targetChapterId, chapters, chapterIndex);
+    openChapter(chapter, chapters, chapterIndex);
   }, [chapters, folderMode, isFolderScanComplete, isOpen, openChapter]);
 
   useEffect(() => {

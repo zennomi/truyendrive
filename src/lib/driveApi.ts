@@ -2,6 +2,19 @@ export type DriveAccountData = any[];
 type DriveFolderResponse = [any[], string | null, any[]];
 type DriveItemResponse = any[];
 type DriveProtoItem = any[];
+type DrivePdfPreviewResponse = {
+  preview?: {
+    link?: string;
+  };
+};
+type DrivePdfViewerBootstrap = {
+  img?: string;
+  meta?: string;
+};
+type DrivePdfViewerMeta = {
+  pages?: number;
+  maxPageWidth?: number;
+};
 
 const DRIVE_API_KEY = 'AIzaSyD_InbmSFufIEps5UAt2NmB_3LvBH3Sz_8';
 const DRIVE_GUEST_API_KEY = 'AIzaSyC1qbk75NzWBvSaDh6KnsjjA9pIrP4lYIE';
@@ -17,19 +30,39 @@ const DRIVE_ITEMS_URL = `https://drivefrontend-pa.clients6.google.com/v1/items:l
 const DRIVE_ITEM_URL = `https://drivefrontend-pa.clients6.google.com/v1/items:get?key=${DRIVE_API_KEY}`;
 const DRIVE_GUEST_ITEMS_URL = `https://drivefrontend-pa.clients6.google.com/v1/items:list?key=${DRIVE_GUEST_API_KEY}`;
 const DRIVE_GUEST_ITEM_URL = `https://drivefrontend-pa.clients6.google.com/v1/items:get?key=${DRIVE_GUEST_API_KEY}`;
+const DRIVE_FILE_INTERNAL_URL =
+  'https://clients6.google.com/drive/v2internal/files';
 const DRIVE_FIELD_MASK =
   'items(parent,modified_date_millis,has_visitor_permissions,contains_unsubscribed_children,capabilities(can_move_item_into_team_drive,can_untrash,can_modify_content_restriction,can_move_item_within_team_drive,can_move_item_out_of_team_drive,can_delete_children,can_trash_children,can_request_approval,can_read_category_metadata,can_edit_category_metadata,can_add_my_drive_parent,can_remove_my_drive_parent,can_share_child_files,can_share_child_folders,can_read,can_move_item_within_drive,can_move_children_within_drive,can_add_folder_from_another_drive,can_change_security_update_enabled,can_create_decrypted_copy,can_create_encrypted_copy,can_add_encrypted_children,can_block_owner,can_report_spam_or_abuse,can_copy_encrypted_file,can_copy_non_authoritative,can_download_non_authoritative,can_report_not_spam,can_initiate_esignature,can_discover_by_search,can_copy,can_download,can_edit,can_add_children,can_delete,can_remove_children,can_share,can_trash,can_rename,can_list_children,can_read_team_drive,can_move_team_drive_item),modified_by_me_date_millis,last_viewed_by_me_date_millis,alternate_link,workspace_id,file_size,content_restrictions(read_only),approval_version,owner(id,focus_user_id,is_me,type,email),approval_summaries,shortcut_details(target_id,target_mime_type,target_lookup_status,target_item,can_request_access_to_target),last_modifying_user(id,focus_user_id,is_me,type,email),customer_id,ancestor_has_own_permissions,has_thumbnail,thumbnail_version,title,mime_type,image(width,height),id,resource_key,abuse_is_appealable,abuse_notice_reason,spam_metadata(marked_as_spam_date_millis,in_spam_view,is_spam,is_inherited_spam),shared,access_requests_count,has_incoming_approval,shared_with_me_date_millis,user_role,inheritance_broken,explicitly_trashed,quota_bytes_used,gmail_message_storage_id,applied_labels,has_catch_me_up_content,workflow_creation_id,vids_import_compatibility_info,workbook_details,subscribed,folder_color,has_child_folder,starred,creator_app_id,file_extension,primary_sync_parent,sharing_user(id,focus_user_id,is_me,type,email),flagged_for_abuse,folder_features,spaces,source_app_id,trashed,recency_date_millis,recency_date_reason,restricted,version,action_item,viewed,team_drive_id,has_own_permissions,create_date_millis,primary_domain_name,organization_display_name,passively_subscribed,trashing_user(id,focus_user_id,is_me,type,email),trashed_date_millis),continuation_token,search_response_metadata(incomplete_search,moonshine_item_ids,query_suggestions(spell_response,nlp_response))';
 const DRIVE_ITEM_FIELD_MASK =
   'responses(status(code,message,details),item(parent,modified_date_millis,has_visitor_permissions,contains_unsubscribed_children,capabilities(can_move_item_into_team_drive,can_untrash,can_modify_content_restriction,can_move_item_within_team_drive,can_move_item_out_of_team_drive,can_delete_children,can_trash_children,can_request_approval,can_read_category_metadata,can_edit_category_metadata,can_add_my_drive_parent,can_remove_my_drive_parent,can_share_child_files,can_share_child_folders,can_read,can_move_item_within_drive,can_move_children_within_drive,can_add_folder_from_another_drive,can_change_security_update_enabled,can_create_decrypted_copy,can_create_encrypted_copy,can_add_encrypted_children,can_block_owner,can_report_spam_or_abuse,can_copy_encrypted_file,can_copy_non_authoritative,can_download_non_authoritative,can_report_not_spam,can_initiate_esignature,can_discover_by_search,can_copy,can_download,can_edit,can_add_children,can_delete,can_remove_children,can_share,can_trash,can_rename,can_list_children,can_read_team_drive,can_move_team_drive_item),modified_by_me_date_millis,last_viewed_by_me_date_millis,alternate_link,workspace_id,file_size,content_restrictions(read_only),approval_version,owner(id,focus_user_id,is_me,type,email),approval_summaries,shortcut_details(target_id,target_mime_type,target_lookup_status,target_item,can_request_access_to_target),last_modifying_user(id,focus_user_id,is_me,type,email),customer_id,ancestor_has_own_permissions,has_thumbnail,thumbnail_version,title,mime_type,id,resource_key,abuse_is_appealable,abuse_notice_reason,spam_metadata(marked_as_spam_date_millis,in_spam_view,is_spam,is_inherited_spam),shared,access_requests_count,has_incoming_approval,shared_with_me_date_millis,user_role,inheritance_broken,explicitly_trashed,quota_bytes_used,gmail_message_storage_id,applied_labels,has_catch_me_up_content,workflow_creation_id,vids_import_compatibility_info,workbook_details,subscribed,folder_color,has_child_folder,starred,creator_app_id,file_extension,primary_sync_parent,sharing_user(id,focus_user_id,is_me,type,email),flagged_for_abuse,folder_features,spaces,source_app_id,trashed,recency_date_millis,recency_date_reason,restricted,version,action_item,viewed,team_drive_id,has_own_permissions,create_date_millis,primary_domain_name,organization_display_name,passively_subscribed,trashing_user(id,focus_user_id,is_me,type,email),trashed_date_millis,permission_summary))';
 const DRIVE_ACCEPT_LANGUAGE = 'vi';
 const DRIVE_ORIGIN = 'https://drive.google.com';
+const DRIVE_GAPI_PROXY_TIMEOUT_MS = 3000;
 
 type SapisidContext = Record<string, string | number> | null;
+type GapiRequest = {
+  execute?: (callback: (response: any) => void) => void;
+  then?: (
+    onFulfilled: (response: any) => void,
+    onRejected: (error: any) => void,
+  ) => void;
+};
 
 export type DriveFolderDetails = {
   title: string;
   ownerEmail: string;
   thumbnailUrl: string | null;
+};
+
+export type DrivePdfPage = {
+  id: string;
+  width: number;
+  height: number;
+  url: string;
+  fetchUrl: string;
+  thumbnailUrl: string;
+  requiresDecryption: false;
 };
 
 async function getSapisidHash(timestamp: number, context: SapisidContext) {
@@ -146,12 +179,188 @@ function requestProtoJson<TResponse>({
   });
 }
 
+function requestText({
+  body,
+  headers,
+  method,
+  url,
+}: {
+  body?: Document | XMLHttpRequestBodyInit | null;
+  headers?: Record<string, string>;
+  method: 'GET' | 'POST';
+  url: string;
+}) {
+  return new Promise<string>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, url, true);
+    xhr.withCredentials = true;
+
+    Object.entries(headers ?? {}).forEach(([key, value]) => {
+      xhr.setRequestHeader(key, value);
+    });
+
+    xhr.onload = () => {
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error(`Request failed with status ${xhr.status}`));
+        return;
+      }
+
+      resolve(xhr.responseText);
+    };
+
+    xhr.onerror = () =>
+      reject(new Error('Network error while requesting data'));
+    xhr.send(body);
+  });
+}
+
+function stripXssiPrefix(text: string) {
+  return text.replace(/^\)\]\}'\s*/, '').trim();
+}
+
+function parseJsonText<TResponse>(text: string): TResponse {
+  const strippedText = stripXssiPrefix(text);
+
+  try {
+    return JSON.parse(strippedText) as TResponse;
+  } catch (error) {
+    try {
+      return JSON.parse(stripXssiPrefix(atob(strippedText))) as TResponse;
+    } catch {
+      throw error;
+    }
+  }
+}
+
 function buildFolderItemsBody(folderId: string, cursor?: string) {
   return `[[null,null,null,null,0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,"",null,0,null,null,[4,1,1],null,null,null,null,null,null,null,null,null,null,[[1]],null,null,null,null,null,null,null,[["${folderId}"]]],[50,"${cursor ?? ''}",[2,5]]]`;
 }
 
 function buildFolderDetailsBody(folderId: string) {
   return `[["${folderId}"],[null,null,null,null,null,[2,5]]]`;
+}
+
+function buildPdfPreviewUrl(
+  pdfId: string,
+  apiKey: string,
+  baseUrl: string,
+  withCacheBust = false,
+) {
+  const url = new URL(`${baseUrl}/${encodeURIComponent(pdfId)}`);
+  url.searchParams.set('fields', 'preview,kind');
+  url.searchParams.set('supportsTeamDrives', 'true');
+  url.searchParams.set('enforceSingleParent', 'true');
+  url.searchParams.set('key', apiKey);
+
+  if (withCacheBust) {
+    url.searchParams.set('$unique', `truyendrive-${Date.now()}`);
+  }
+
+  return url;
+}
+
+function buildClientDetails() {
+  const userAgent = navigator.userAgent;
+  return [
+    ['appVersion', navigator.appVersion],
+    ['platform', navigator.platform],
+    ['userAgent', userAgent],
+  ]
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .join('&');
+}
+
+function getBrowserAcceptLanguage() {
+  const languages =
+    navigator.languages && navigator.languages.length > 0
+      ? navigator.languages
+      : [navigator.language || 'en-US'];
+  return languages
+    .map((language, index) =>
+      index === 0 ? language : `${language};q=${Math.max(0.1, 1 - index / 10)}`,
+    )
+    .join(',');
+}
+
+function getGapiClientRequest():
+  | ((options: Record<string, unknown>) => GapiRequest)
+  | null {
+  const gapi = (window as any).gapi;
+  return typeof gapi?.client?.request === 'function'
+    ? gapi.client.request.bind(gapi.client)
+    : null;
+}
+
+async function waitForGapiClientRequest() {
+  const existingRequest = getGapiClientRequest();
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const startedAt = Date.now();
+  return new Promise<NonNullable<ReturnType<typeof getGapiClientRequest>>>(
+    (resolve, reject) => {
+      const poll = () => {
+        const request = getGapiClientRequest();
+        if (request) {
+          resolve(request);
+          return;
+        }
+
+        if (Date.now() - startedAt >= DRIVE_GAPI_PROXY_TIMEOUT_MS) {
+          reject(
+            new Error('Google Drive gapi client is not ready for guest PDF'),
+          );
+          return;
+        }
+
+        window.setTimeout(poll, 50);
+      };
+
+      poll();
+    },
+  );
+}
+
+async function requestGapiJson<TResponse>(
+  options: Record<string, unknown>,
+): Promise<TResponse> {
+  const request = (await waitForGapiClientRequest())(options);
+
+  if (typeof request.then === 'function') {
+    const response = await new Promise<any>((resolve, reject) => {
+      request.then?.(resolve, reject);
+    });
+    return (response.result ??
+      (typeof response.body === 'string'
+        ? parseJsonText<TResponse>(response.body)
+        : response)) as TResponse;
+  }
+
+  if (typeof request.execute === 'function') {
+    return new Promise<TResponse>((resolve, reject) => {
+      request.execute?.((response) => {
+        if (response?.error) {
+          reject(
+            new Error(
+              response.error.message ??
+                `Request failed with status ${response.status}`,
+            ),
+          );
+          return;
+        }
+
+        resolve(
+          (response.result ??
+            (typeof response.body === 'string'
+              ? parseJsonText<TResponse>(response.body)
+              : response)) as TResponse,
+        );
+      });
+    });
+  }
+
+  throw new Error('Google Drive gapi request could not be created');
 }
 
 function isDriveProtoItem(value: unknown): value is DriveProtoItem {
@@ -287,6 +496,159 @@ export async function fetchFolderItemsGuest(
     }),
     method: 'POST',
     url: DRIVE_GUEST_ITEMS_URL,
+  });
+}
+
+async function fetchPdfPreviewLink(pdfId: string, authUser = getAuthUser()) {
+  if (authUser === 'guest') {
+    return fetchPdfPreviewLinkGuest(pdfId);
+  }
+
+  const timestamp = Math.floor(Date.now() / 1000);
+  const authorization = await getSapisidHash(timestamp, null);
+  const url = buildPdfPreviewUrl(
+    pdfId,
+    DRIVE_API_KEY,
+    DRIVE_FILE_INTERNAL_URL,
+    true,
+  );
+
+  const response = parseJsonText<DrivePdfPreviewResponse>(
+    await requestText({
+      headers: {
+        accept: '*/*',
+        'accept-language': DRIVE_ACCEPT_LANGUAGE,
+        authorization,
+        'cache-control': 'no-cache',
+        pragma: 'no-cache',
+        'x-goog-authuser': authUser,
+        'x-javascript-user-agent': 'google-api-javascript-client/1.1.0',
+        'x-requested-with': 'XMLHttpRequest',
+      },
+      method: 'GET',
+      url: url.toString(),
+    }),
+  );
+
+  const previewLink = response.preview?.link;
+  if (!previewLink) {
+    throw new Error('Failed to load Google Drive PDF preview link');
+  }
+
+  return previewLink;
+}
+
+async function fetchPdfPreviewLinkGuest(pdfId: string) {
+  const response = await requestGapiJson<DrivePdfPreviewResponse>({
+    headers: {
+      accept: '*/*',
+      'accept-language': getBrowserAcceptLanguage(),
+      'x-clientdetails': buildClientDetails(),
+      'x-goog-authuser': '0',
+      'x-goog-encode-response-if-executable': 'base64',
+      'x-javascript-user-agent': 'google-api-javascript-client/1.1.0',
+      'x-origin': DRIVE_ORIGIN,
+      'x-referer': DRIVE_ORIGIN,
+      'x-requested-with': 'XMLHttpRequest',
+    },
+    method: 'GET',
+    params: {
+      enforceSingleParent: true,
+      fields: 'preview,kind',
+      key: DRIVE_GUEST_API_KEY,
+      supportsTeamDrives: true,
+    },
+    path: `/drive/v2beta/files/${encodeURIComponent(pdfId)}`,
+    root: 'https://clients6.google.com',
+  });
+
+  const previewLink = response.preview?.link;
+  if (!previewLink) {
+    throw new Error('Failed to load Google Drive PDF preview link');
+  }
+
+  return previewLink;
+}
+
+function buildViewerUrl(path: string) {
+  return new URL(path, 'https://drive.google.com/viewer/');
+}
+
+function buildPdfPageUrl(
+  pageTemplate: string,
+  pageIndex: number,
+  width: number,
+  thumbnail = false,
+) {
+  const url = buildViewerUrl(pageTemplate);
+  url.searchParams.set('page', String(pageIndex));
+  url.searchParams.set('skiphighlight', 'true');
+  url.searchParams.set('w', String(thumbnail ? 240 : width));
+
+  if (!thumbnail) {
+    url.searchParams.set('auditContext', 'forDisplay');
+    url.searchParams.set('webp', 'true');
+  }
+
+  return url.toString();
+}
+
+export async function fetchPdfImages(
+  pdfId: string,
+  authUser = getAuthUser(),
+): Promise<DrivePdfPage[]> {
+  const previewLink = await fetchPdfPreviewLink(pdfId, authUser);
+  const bootstrap = parseJsonText<DrivePdfViewerBootstrap>(
+    await requestText({
+      headers: {
+        accept: '*/*',
+        'accept-language': DRIVE_ACCEPT_LANGUAGE,
+        'cache-control': 'no-cache',
+        pragma: 'no-cache',
+      },
+      method: 'GET',
+      url: previewLink,
+    }),
+  );
+
+  if (!bootstrap.img || !bootstrap.meta) {
+    throw new Error('Failed to parse Google Drive PDF viewer data');
+  }
+
+  const meta = parseJsonText<DrivePdfViewerMeta>(
+    await requestText({
+      headers: {
+        accept: '*/*',
+        'accept-language': DRIVE_ACCEPT_LANGUAGE,
+        'cache-control': 'no-cache',
+        pragma: 'no-cache',
+      },
+      method: 'GET',
+      url: buildViewerUrl(bootstrap.meta).toString(),
+    }),
+  );
+  const pageCount = Number(meta.pages ?? 0);
+  const maxPageWidth = Number(meta.maxPageWidth ?? 0);
+
+  if (!Number.isFinite(pageCount) || pageCount <= 0) {
+    throw new Error('Failed to detect Google Drive PDF page count');
+  }
+
+  const pageWidth =
+    Number.isFinite(maxPageWidth) && maxPageWidth > 0 ? maxPageWidth : 1600;
+
+  return Array.from({ length: pageCount }, (_, pageIndex) => {
+    const url = buildPdfPageUrl(bootstrap.img!, pageIndex, pageWidth);
+
+    return {
+      fetchUrl: url,
+      height: 0,
+      id: `pdf:${pdfId}:${pageIndex}`,
+      requiresDecryption: false,
+      thumbnailUrl: buildPdfPageUrl(bootstrap.img!, pageIndex, pageWidth, true),
+      url,
+      width: pageWidth,
+    };
   });
 }
 
