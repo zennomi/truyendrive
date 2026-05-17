@@ -352,7 +352,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   );
 
   const tooltipParts = useMemo(
-    () => tooltip?.text.split(/(\[.*?\])/) ?? [],
+    () => tooltip?.text.split(/(\[.+?\])/) ?? [],
     [tooltip],
   );
 
@@ -388,7 +388,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
           <div className="rdr-selector-top">
             <button
               className="rdr-selector-vol ico-btn prev"
-              data-tip="Next volume [.]"
+              data-tip="Next page [.]"
               onClick={handlePrevPage}
               type="button"
             />
@@ -412,9 +412,13 @@ export const ReaderSidebar = memo(function ReaderSidebar({
               </div>
             </div> */}
             <button
-              className="ico-btn UI Button"
+              className="ico-btn UI Button password"
               data-password-active={password !== null}
-              data-tip="Set/clear decryption password [K]"
+              data-tip={
+                password
+                  ? 'Set new/Clear decryption password [K]'
+                  : 'Set decryption password [K]'
+              }
               onClick={requestPassword}
               type="button"
             >
@@ -439,17 +443,17 @@ export const ReaderSidebar = memo(function ReaderSidebar({
             />
             <button
               className="ico-btn jump"
-              data-tip="Jump to chapter... [J]"
+              data-tip="Jump to top [J]"
               onClick={jumpToChapterStart}
               type="button"
             />
-            <button
+            {/* <button
               className="ico-btn search"
               data-tip="Search the manga... [Ctrl]+[F]"
               onClick={handleOpenSettings}
               style={{ display: 'none' }}
               type="button"
-            />
+            /> */}
           </div>
           <div className="rdr-selector-mid">
             <button
@@ -527,7 +531,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
           <div className="rdr-selector-bot">
             <button
               className="rdr-selector-vol ico-btn next"
-              data-tip="Previous volume [,]"
+              data-tip="Previous page [,]"
               onClick={handleNextPage}
               type="button"
             />

@@ -376,6 +376,7 @@ function AppContent() {
   }, []);
 
   const requestPassword = useCallback(() => {
+    console.log({ password });
     const value = window.prompt('Enter decryption password:', password ?? '');
     setManualPassword(value && value.length > 0 ? value : null);
   }, [password]);
