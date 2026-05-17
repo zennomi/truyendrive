@@ -1,6 +1,6 @@
 # Hướng dẫn cài đặt TruyenDrive
 
-Để sử dụng TruyenDrive, bạn cần cài đặt một ứng dụng hoặc tiện ích mở rộng giúp chạy userscript trên trình duyệt. Dưới đây là hướng dẫn chi tiết cho từng nền tảng.
+Để sử dụng TruyenDrive, bạn cần cài đặt một ứng dụng hoặc tiện ích mở rộng giúp chạy userscript trên trình duyệt. Dưới đây là hướng dẫn chi tiết cho từng nền tảng (máy tính/iphone/thiết bị android)
 
 ## 1. Dành cho Desktop (Máy tính)
 
@@ -11,10 +11,12 @@ Phổ biến nhất trên Desktop là sử dụng tiện ích **Tampermonkey**.
 **Tải Tampermonkey**: [https://www.tampermonkey.net/](https://www.tampermonkey.net/)
 
 Hoặc dùng các link tải trực tiếp dưới đây:
+
 - **Google Chrome / Microsoft Edge / Cốc Cốc**: Cài đặt từ [Chrome Web Store](https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo).
 - **Mozilla Firefox**: Cài đặt từ [Firefox Add-ons](https://addons.mozilla.org/vi/firefox/addon/tampermonkey/).
 
 #### Lưu ý với người lần đầu cài đặt Tampermonkey
+
 Lần đầu cài đặt Tampermonkey, ở icon của Tampermonkey sẽ hiện ra một cái chữ "X" đỏ, bạn cần thao tác khác để kích hoạt Tampermonkey.
 
 ![Tampermonkey Disabled](./assets/guides/tampermonkey-disabled.png)
@@ -51,46 +53,54 @@ Ngoài ra sẽ có 1 nút TruyenDrive ở góc dưới cùng bên phải của t
 Để chạy userscript trên iOS, bạn có thể sử dụng ứng dụng **Userscripts** kết hợp với trình duyệt **Safari**.
 
 ### Bước 1: Cài đặt ứng dụng Userscripts
-Tải và cài đặt ứng dụng **Userscripts** từ App Store.
 
-![Placeholder: Tải Userscripts trên App Store](./assets/guides/ios-userscripts-appstore-placeholder.png)
+Tải và cài đặt ứng dụng **Userscripts** từ App Store. [Link tại đây](https://apps.apple.com/vn/app/userscripts/id1463298887?l=vi).
+
+![Placeholder: Tải Userscripts trên App Store](./assets/guides/ios-userscripts-appstore.png)
 
 ### Bước 2: Kích hoạt phần mở rộng trên Safari
+
 1. Mở **Cài đặt** (Settings) trên iOS.
-2. Tìm và chọn **Safari** > **Phần mở rộng** (Extensions).
+2. Tìm và chọn **Safari** > **Phần mở rộng** (Extensions) (Trong phần Cài đặt chung).
 3. Chọn **Userscripts** và bật nó lên. Đảm bảo cấp quyền truy cập vào các trang web (All Websites).
 
-![Placeholder: Bật Userscripts trong cài đặt Safari](./assets/guides/ios-safari-extension-placeholder.png)
+![Placeholder: Bật Userscripts trong cài đặt Safari](./assets/guides/ios-safari-extension.png)
 
 ### Bước 3: Cài đặt script TruyenDrive
-1. Mở ứng dụng **Userscripts**, chọn thư mục để lưu trữ các script của bạn.
+
+1. Mở app Userscripts lên rồi đóng.
+
 2. Mở trình duyệt Safari và truy cập vào link: [https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js](https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js)
+
+3. Bấm vào icon Menu trên thanh địa chỉ của Safari → Chọn Userscripts (b). Nếu không có dòng Userscripts, bấm Quản lý phần mở rộng (a) → Bật Userscripts lên rồi quay lại Menu này.
+
+![iOS Safari Menu](./assets/guides/ios-safari-menu.png)
+
 3. Ứng dụng Userscripts sẽ nhận diện và cho phép bạn tải về/cài đặt script này.
 
-![Placeholder: Cài đặt script trên Safari iOS](./assets/guides/ios-install-script-placeholder.png)
+![Placeholder: Cài đặt script trên Safari iOS](./assets/guides/ios-install-script.png)
+
+4. Truy cập drive.google.com bằng trình duyệt để dùng userscript.
 
 ## 3. Dành cho thiết bị Android
 
 Trên Android, bạn không thể cài đặt extension trực tiếp lên Google Chrome, vì vậy có 2 phương pháp phổ biến:
 
 ### Phương pháp 1: Sử dụng Kiwi Browser (Khuyên dùng)
+
 Kiwi Browser là một trình duyệt dựa trên Chromium có hỗ trợ cài đặt extension giống hệt trên máy tính.
 
 1. Tải và cài đặt **Kiwi Browser** từ Google Play Store.
-   ![Placeholder: Tải Kiwi Browser](./assets/guides/android-kiwi-playstore-placeholder.png)
 2. Mở Kiwi Browser, truy cập Chrome Web Store và cài đặt extension **Tampermonkey** tương tự như trên Desktop.
 3. Nhấp vào link tải script: [https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js](https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js)
 4. Xác nhận cài đặt trong Tampermonkey.
 
-![Placeholder: Cài đặt script trên Kiwi Browser](./assets/guides/android-kiwi-install-placeholder.png)
-
 ### Phương pháp 2: Sử dụng Firefox cho Android
+
 Firefox trên Android hỗ trợ một số extension được chọn lọc, trong đó có Tampermonkey.
 
 1. Tải và cài đặt **Firefox** từ Google Play Store.
-   ![Placeholder: Tải Firefox Android](./assets/guides/android-firefox-playstore-placeholder.png)
+
 2. Mở menu của Firefox (dấu 3 chấm), chọn **Tiện ích mở rộng** (Add-ons).
 3. Tìm và cài đặt **Tampermonkey**.
 4. Truy cập vào link script: [https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js](https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js) để tiến hành cài đặt.
-
-![Placeholder: Cài đặt script trên Firefox Android](./assets/guides/android-firefox-install-placeholder.png)

@@ -1,12 +1,12 @@
 # TruyenDrive
 
-TruyenDrive là một userscript giúp biến các thư mục trên Google Drive thành một giao diện đọc truyện tranh chuyên nghiệp và tiện lợi.
+TruyenDrive là một userscript giúp biến các thư mục trên Google Drive, OneDrive (preview) thành một giao diện đọc truyện tranh chuyên nghiệp và tiện lợi.
 
 ![TruyenDrive Chapter Reader](./docs/assets/chapter-demo.jpg)
 
 ![TruyenDrive Manga Viewer](./docs/assets/comic-demo.jpg)
 
-Thay vì phải mở từng ảnh một cách thủ công trên Google Drive, TruyenDrive sẽ tự động nhận diện các thư mục chứa ảnh hoặc các thư mục con (các chương truyện), sau đó hiển thị chúng dưới dạng một trình đọc truyện với đầy đủ các tính năng như chuyển trang, thiết lập hiển thị, và lưu lại lịch sử đọc.
+Thay vì phải mở từng ảnh một cách thủ công trên Google Drive, TruyenDrive sẽ tự động nhận diện các thư mục chứa ảnh hoặc các thư mục con (các chương truyện), sau đó hiển thị chúng dưới dạng một trình đọc truyện với đầy đủ các tính năng như chuyển trang, thiết lập hiển thị.
 
 ## Tính năng chính
 
@@ -15,6 +15,8 @@ Thay vì phải mở từng ảnh một cách thủ công trên Google Drive, Tr
 - **Tùy chỉnh linh hoạt**: Hỗ trợ thay đổi chế độ hiển thị trang (trang đơn, trang đôi), tự động tải trước trang ảnh (preload) để tránh giật lag, và lưu lại cài đặt của người dùng.
 - **Tiện lợi**: Có thanh bên (sidebar) và các nút điều hướng trực quan mang lại trải nghiệm tương tự các trang web đọc truyện lớn.
 - **Lưu lại trạng thái đọc**: TruyenDrive sẽ lưu lại trạng thái đọc của người dùng (chương và trang hiện tại) trong URL, giúp người dùng có thể tiếp tục đọc từ nơi đã dừng lại khi mở lại trang.
+- **Mã hóa hình ảnh**: Hỗ trợ mã hóa hình ảnh để bảo vệ quyền riêng tư. Truy cập bằng mật khẩu.
+- **Đọc chế độ ẩn danh**: Có thể đọc ẩn danh thư mục Google Drive công khai mà không cần đăng nhập.
 
 ## Hướng dẫn cài đặt
 
@@ -39,7 +41,9 @@ Vui lòng xem chi tiết tại: [Hướng dẫn cài đặt TruyenDrive](./docs/
    - Click vào giữa màn hình để mở/đóng thanh công cụ.
    - Sử dụng thanh công cụ hoặc sidebar để **chuyển chương**, phóng to/thu nhỏ, hay thay đổi các cài đặt khác theo sở thích.
 
-### Người share truyện
+> **⚠️ Lưu ý (Disclaimer):** Đây là một userscript phục vụ mục đích học tập và nghiên cứu, không liên kết chính thức với Google Drive hay OneDrive. Bạn nên cân nhắc trước khi sử dụng. Tốt nhất là nên dùng với chế độ ẩn danh (Incognito Mode) để tránh các sự cố không mong muốn với tài khoản cá nhân.
+
+### Người lưu trữ truyện
 
 Để trải nghiệm đọc truyện tốt nhất, bạn nên tổ chức thư mục Google Drive theo cấu trúc sau:
 
@@ -63,6 +67,6 @@ TruyenDrive sẽ tự động nhận diện các thư mục con và hiển thị
 
 Hoặc copy link trực tiếp tại giao diện đọc truyện.
 
-## Hướng dẫn mã hóa hình ảnh (Dành cho Uploader)
+## Hướng dẫn mã hóa hình ảnh (Dành cho Người lưu trữ truyện)
 
 Vui lòng xem chi tiết tại: [Hướng dẫn mã hóa hình ảnh](./docs/encode-images.md)
