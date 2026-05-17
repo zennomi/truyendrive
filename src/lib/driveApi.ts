@@ -39,6 +39,9 @@ const DRIVE_ITEM_FIELD_MASK =
 const DRIVE_ACCEPT_LANGUAGE = 'vi';
 const DRIVE_ORIGIN = 'https://drive.google.com';
 const DRIVE_GAPI_PROXY_TIMEOUT_MS = 3000;
+const DRIVE_GAPI_LAZY_SCRIPT_URL =
+  'https://www.gstatic.com/feedback/js/help/prod/service/lazy.min.js';
+const DRIVE_GAPI_CLIENT_SCRIPT_URL = 'https://apis.google.com/js/client.js';
 
 type SapisidContext = Record<string, string | number> | null;
 type GapiRequest = {
@@ -291,10 +294,41 @@ function getGapiClientRequest():
     : null;
 }
 
+let gapiScriptsPromise: Promise<void> | null = null;
+
+function loadScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+    document.head.appendChild(script);
+  });
+}
+
+function ensureGapiScriptsLoaded(): Promise<void> {
+  if ((window as any).gapi) {
+    return Promise.resolve();
+  }
+
+  if (!gapiScriptsPromise) {
+    gapiScriptsPromise = loadScript(DRIVE_GAPI_LAZY_SCRIPT_URL).then(() =>
+      loadScript(DRIVE_GAPI_CLIENT_SCRIPT_URL),
+    );
+  }
+
+  return gapiScriptsPromise;
+}
+
 async function waitForGapiClientRequest() {
   const existingRequest = getGapiClientRequest();
   if (existingRequest) {
     return existingRequest;
+  }
+
+  if (!(window as any).gapi) {
+    await ensureGapiScriptsLoaded();
   }
 
   const startedAt = Date.now();
