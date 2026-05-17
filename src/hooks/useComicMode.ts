@@ -191,7 +191,7 @@ export function useComicMode({
       const folderId = provider.getFolderIdFromUrl();
       if (!folderId) {
         logOpenError('Failed to open reader: no folder ID found', {});
-        window.alert('No folder ID found in the current URL.');
+        window.alert('Please open a folder first.');
         return;
       }
 
