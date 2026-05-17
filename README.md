@@ -36,10 +36,15 @@ Vui lòng xem chi tiết tại: [Hướng dẫn cài đặt TruyenDrive](./docs/
 ![TruyenDrive Button](./docs/assets/button-demo.png)
 
 3. Nếu thư mục vừa có chứa ảnh (trang truyện) vừa chứa thư mục con (chương truyện), một hộp thoại sẽ hiện ra để bạn chọn cách mở.
+
 4. Trong màn hình đọc truyện, bạn có thể:
    - Click vào hai bên mép màn hình, hoặc dùng phím mũi tên trái/phải để **Chuyển trang**.
    - Click vào giữa màn hình để mở/đóng thanh công cụ.
    - Sử dụng thanh công cụ hoặc sidebar để **chuyển chương**, phóng to/thu nhỏ, hay thay đổi các cài đặt khác theo sở thích.
+
+5. Nếu các trang truyện bị mã hóa và cần nhập mật khẩu, nhập mật khẩu tại menu hoặc bấm phím tắt [K]
+
+![Sử dụng password](./docs/assets/password-demo.png)
 
 > **⚠️ Lưu ý (Disclaimer):** Đây là một userscript phục vụ mục đích học tập và nghiên cứu, không liên kết chính thức với Google Drive hay OneDrive. Bạn nên cân nhắc trước khi sử dụng. Tốt nhất là nên dùng với chế độ ẩn danh (Incognito Mode) để tránh các sự cố không mong muốn với tài khoản cá nhân.
 
