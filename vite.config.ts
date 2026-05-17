@@ -11,7 +11,7 @@ export default defineConfig({
       userscript: {
         name: 'TruyenDrive',
         namespace: 'http://tampermonkey.net/',
-        version: '2.1.0',
+        version: '2.1.1',
         description: 'Best Comic Reader for Google Drive',
         author: 'Zennomi',
         match: [
