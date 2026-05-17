@@ -9,20 +9,27 @@ import {
 
 import {
   clampIndex,
-  getImageUrl,
   type PointerGestureState,
   type ReaderGroup,
 } from '../lib/readerUtils';
+import type { ReaderImage } from '../providers/types';
 import type { ReaderSettings } from '../useSettings';
 
 interface ReaderAreaProps {
+  decryptedSrcs: Map<string, string>;
   displayGroups: ReaderGroup[];
   groupRefs: RefObject<Array<HTMLDivElement | null>>;
+  hasNextChapter: boolean;
   hoverEdge: 'next' | 'prev' | null;
   imageWrapRef: RefObject<HTMLDivElement | null>;
+  getImageUrl: (image: ReaderImage) => string;
   isGroupPreloaded: (index: number) => boolean;
+  isMobile: boolean;
+  isPasswordMode: boolean;
   isScrollReady: boolean;
+  isTtb: boolean;
   navigateGroupOrChapter: (delta: -1 | 1) => void;
+  onMobileTtbTap: () => void;
   onPageLoad: (pageId: string) => void;
   performVerticalPageTurnOrChapter: (direction: 1 | -1) => void;
   preloadImageRefs: RefObject<Array<HTMLImageElement | null>>;
@@ -33,6 +40,7 @@ interface ReaderAreaProps {
   showZoomControls: () => void;
   syncActiveGroupFromScroll: () => void;
   tooWideGroups: Record<string, true>;
+  goToAdjacentChapter: (delta: -1 | 1) => void;
 }
 
 const SELECTOR_PROXIMITY_PX = 72;
@@ -51,13 +59,20 @@ function createIdlePointerGestureState(): PointerGestureState {
 }
 
 export const ReaderArea = memo(function ReaderArea({
+  decryptedSrcs,
   displayGroups,
+  getImageUrl,
   groupRefs,
+  hasNextChapter,
   hoverEdge,
   imageWrapRef,
   isGroupPreloaded,
+  isMobile,
+  isPasswordMode,
   isScrollReady,
+  isTtb,
   navigateGroupOrChapter,
+  onMobileTtbTap,
   onPageLoad,
   performVerticalPageTurnOrChapter,
   preloadImageRefs,
@@ -68,6 +83,7 @@ export const ReaderArea = memo(function ReaderArea({
   showZoomControls,
   syncActiveGroupFromScroll,
   tooWideGroups,
+  goToAdjacentChapter,
 }: ReaderAreaProps) {
   const pointerGestureRef = useRef<PointerGestureState>(
     createIdlePointerGestureState(),
@@ -75,6 +91,11 @@ export const ReaderArea = memo(function ReaderArea({
   const suppressClickRef = useRef(false);
 
   const handleAreaClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (isMobile && isTtb) {
+      onMobileTtbTap();
+      return;
+    }
+
     if (suppressClickRef.current) {
       suppressClickRef.current = false;
       return;
@@ -283,7 +304,7 @@ export const ReaderArea = memo(function ReaderArea({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onScroll={syncActiveGroupFromScroll}
+        onScroll={isTtb ? undefined : syncActiveGroupFromScroll}
         ref={imageWrapRef}
         style={{ visibility: isScrollReady ? 'visible' : 'hidden' }}
         tabIndex={-1}
@@ -296,19 +317,57 @@ export const ReaderArea = memo(function ReaderArea({
               groupRefs.current[groupIndex] = element;
             }}
           >
-            {group.pages.map((page) => (
-              <img
-                alt={`Page ${page.index + 1}`}
-                data-page-id={page.id}
-                decoding="async"
-                key={page.id}
-                loading={isGroupPreloaded(groupIndex) ? 'eager' : 'lazy'}
-                onLoad={handlePageImageLoad}
-                src={getImageUrl(page.id)}
-              />
-            ))}
+            {group.pages.map((page) => {
+              const decryptedSrc = isPasswordMode
+                ? decryptedSrcs.get(page.id)
+                : undefined;
+              const dimensionHints =
+                page.width && page.height
+                  ? {
+                      height: page.height,
+                      style: {
+                        aspectRatio: `${page.width} / ${page.height}`,
+                      },
+                      width: page.width,
+                    }
+                  : undefined;
+
+              if (isPasswordMode && !decryptedSrc) {
+                return (
+                  <img
+                    alt={`Page ${page.index + 1}`}
+                    data-page-id={page.id}
+                    key={page.id}
+                    src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                    {...dimensionHints}
+                  />
+                );
+              }
+
+              return (
+                <img
+                  alt={`Page ${page.index + 1}`}
+                  data-page-id={page.id}
+                  decoding="async"
+                  key={page.id}
+                  loading={isGroupPreloaded(groupIndex) ? 'eager' : 'lazy'}
+                  onLoad={handlePageImageLoad}
+                  src={decryptedSrc ?? getImageUrl(page)}
+                  {...dimensionHints}
+                />
+              );
+            })}
           </div>
         ))}
+        {hasNextChapter && (
+          <div
+            className="UI Dummy nextCha"
+            onClick={(e) => {
+              e.stopPropagation();
+              goToAdjacentChapter(1);
+            }}
+          ></div>
+        )}
       </div>
       <div
         className={`hover-prev${hoverEdge === 'prev' ? ' viz nodelay' : ''}`}

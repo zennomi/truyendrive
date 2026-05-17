@@ -32,12 +32,16 @@ type ToggleSettingFn = <
 
 interface UseKeyboardHandlerParams {
   closeComicMode: () => void;
+  copyShareUrl: () => void;
   cycleSetting: CycleSettingFn;
+  goToAdjacentChapter: (delta: -1 | 1) => void;
   isComicSurfaceOpen: boolean;
   isOpen: boolean;
   isSettingsOpen: boolean;
+  jumpToChapterStart: () => void;
   navigateGroupOrChapter: (delta: -1 | 1) => void;
   performVerticalStep: (direction: 1 | -1) => void;
+  requestPassword: () => void;
   setIsSettingsOpen: Dispatch<SetStateAction<boolean>>;
   settings: ReaderSettings;
   toggleSetting: ToggleSettingFn;
@@ -45,12 +49,16 @@ interface UseKeyboardHandlerParams {
 
 export function useKeyboardHandler({
   closeComicMode,
+  copyShareUrl,
   cycleSetting,
+  goToAdjacentChapter,
   isComicSurfaceOpen,
   isOpen,
   isSettingsOpen,
+  jumpToChapterStart,
   navigateGroupOrChapter,
   performVerticalStep,
+  requestPassword,
   setIsSettingsOpen,
   settings,
   toggleSetting,
@@ -76,6 +84,12 @@ export function useKeyboardHandler({
     if (event.key === 'o' || event.key === 'O') {
       event.preventDefault();
       setIsSettingsOpen((current) => !current);
+      return;
+    }
+
+    if (!isSettingsOpen && (event.key === 'k' || event.key === 'K')) {
+      event.preventDefault();
+      requestPassword();
       return;
     }
 
@@ -112,6 +126,48 @@ export function useKeyboardHandler({
     if (event.key === 's' || event.key === 'S') {
       event.preventDefault();
       toggleSetting('apr', 'sidebar');
+      return;
+    }
+
+    if (event.key === 'r' || event.key === 'R') {
+      event.preventDefault();
+      copyShareUrl();
+      return;
+    }
+
+    if (event.key === 'j' || event.key === 'J') {
+      event.preventDefault();
+      jumpToChapterStart();
+      return;
+    }
+
+    if (event.key === 'p' || event.key === 'P') {
+      event.preventDefault();
+      toggleSetting('apr', 'previews');
+      return;
+    }
+
+    if (event.key === '[') {
+      event.preventDefault();
+      goToAdjacentChapter(-1);
+      return;
+    }
+
+    if (event.key === ']') {
+      event.preventDefault();
+      goToAdjacentChapter(1);
+      return;
+    }
+
+    if (event.key === '.') {
+      event.preventDefault();
+      navigateGroupOrChapter(-1);
+      return;
+    }
+
+    if (event.key === ',') {
+      event.preventDefault();
+      navigateGroupOrChapter(1);
       return;
     }
 

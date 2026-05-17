@@ -11,7 +11,6 @@ import type { ReaderSettings } from '../useSettings';
 interface UseWideGroupTrackerParams {
   displayGroups: ReaderGroup[];
   groupRefs: MutableRefObject<Array<HTMLDivElement | null>>;
-  imageIds: string[];
   imageLoadVersion: number;
   isOpen: boolean;
   settings: ReaderSettings;
@@ -20,7 +19,6 @@ interface UseWideGroupTrackerParams {
 export function useWideGroupTracker({
   displayGroups,
   groupRefs,
-  imageIds,
   imageLoadVersion,
   isOpen,
   settings,
@@ -76,7 +74,6 @@ export function useWideGroupTracker({
     };
   }, [
     displayGroups,
-    imageIds,
     imageLoadVersion,
     isOpen,
     settings.lyt.direction,

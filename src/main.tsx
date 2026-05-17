@@ -1,7 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { AuthProvider } from './contexts/AuthContext';
+import { ProviderProvider } from './contexts/ProviderContext';
+import { GoogleDriveProvider } from './providers/google-drive';
+import { OneDriveProvider } from './providers/one-drive';
 import shadowStyles from './assets/styles/index.css?inline';
 import fontStyles from './assets/styles/font.css?inline';
 
@@ -17,12 +19,16 @@ document.body.append(host);
 const shadowRoot = host.attachShadow({ mode: 'open' });
 const mountNode = document.createElement('div');
 shadowRoot.append(mountNode);
+const provider =
+  window.location.hostname === 'onedrive.live.com'
+    ? new OneDriveProvider()
+    : new GoogleDriveProvider();
 
 ReactDOM.createRoot(mountNode).render(
   <React.StrictMode>
     <style>{shadowStyles}</style>
-    <AuthProvider>
+    <ProviderProvider provider={provider}>
       <App />
-    </AuthProvider>
+    </ProviderProvider>
   </React.StrictMode>,
 );

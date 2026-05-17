@@ -12,7 +12,7 @@
   box-sizing: border-box;
 }
 
-#rdr-main {
+.truyendrive-portal {
   background: var(--readerBg);
   color: var(--textCol);
   font-family: 'Open Sans', sans-serif;
@@ -20,16 +20,19 @@
   line-height: 1.3;
   position: fixed;
   z-index: 2147483647;
-  width: 100%;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: auto;
 }
 
-#rdr-main,
-#rdr-main a,
-#rdr-main input,
-#rdr-main label,
-#rdr-main option,
-#rdr-main select,
-#rdr-main textarea {
+.truyendrive-portal,
+.truyendrive-portal a,
+.truyendrive-portal input,
+.truyendrive-portal label,
+.truyendrive-portal option,
+.truyendrive-portal select,
+.truyendrive-portal textarea {
   color: inherit;
 }
 
@@ -39,6 +42,7 @@
   border: 1px solid #f00c;
   border-radius: 0.2em;
   bottom: 20px;
+  right: 80px;
   color: #ddd;
   cursor: pointer;
   display: inline-flex;
@@ -47,9 +51,14 @@
     sans-serif;
   padding: 0;
   position: fixed;
-  right: 80px;
   z-index: 2147483647;
   transition: all 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .truyendrive-launcher {
+    right: 20px;
+  }
 }
 
 .truyendrive-launcher .launcher-icon {

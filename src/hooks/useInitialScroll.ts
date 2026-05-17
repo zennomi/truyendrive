@@ -1,9 +1,10 @@
-import { useLayoutEffect, type MutableRefObject } from 'react';
+import { useLayoutEffect, useRef, type MutableRefObject } from 'react';
 
 import { findGroupIndexForPage, type ReaderGroup } from '../lib/readerUtils';
 import type { ReaderSettings } from '../useSettings';
 
 interface UseInitialScrollParams {
+  activeFolderId: string | null;
   activeGroupIndex: number;
   chapterStartGroupIndex: number;
   currentPageRef: MutableRefObject<number>;
@@ -16,6 +17,7 @@ interface UseInitialScrollParams {
 }
 
 export function useInitialScroll({
+  activeFolderId,
   activeGroupIndex,
   chapterStartGroupIndex,
   currentPageRef,
@@ -26,8 +28,18 @@ export function useInitialScroll({
   setIsScrollReady,
   settings,
 }: UseInitialScrollParams) {
+  const initialScrollFolderIdRef = useRef<string | null>(null);
+
   useLayoutEffect(() => {
-    if (!isOpen || displayGroups.length === 0) {
+    if (!isOpen || !activeFolderId) {
+      initialScrollFolderIdRef.current = null;
+      return;
+    }
+
+    if (
+      initialScrollFolderIdRef.current === activeFolderId ||
+      displayGroups.length === 0
+    ) {
       return;
     }
 
@@ -37,6 +49,7 @@ export function useInitialScroll({
     const nextIndex =
       matchingIndex === -1 ? chapterStartGroupIndex : matchingIndex;
     const targetGroup = groupRefs.current[nextIndex];
+    initialScrollFolderIdRef.current = activeFolderId;
 
     if (activeGroupIndex !== nextIndex) {
       setActiveGroupIndex(nextIndex);
@@ -60,6 +73,7 @@ export function useInitialScroll({
 
     setIsScrollReady(true);
   }, [
+    activeFolderId,
     displayGroups,
     isOpen,
     chapterStartGroupIndex,

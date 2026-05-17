@@ -1,5 +1,14 @@
 import type { Chapter, FolderMode } from '../hooks/useComicMode';
-import { memo, useCallback, type ChangeEvent, type MouseEvent } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type MouseEvent,
+} from 'react';
 import {
   DIRECTION_OPTIONS,
   FIT_OPTIONS,
@@ -11,10 +20,10 @@ import {
 import {
   findGroupIndexForPage,
   getDisplayGroupIndex,
-  getImageUrl,
   pageLabel,
   type ReaderGroup,
 } from '../lib/readerUtils';
+import type { ReaderImage } from '../providers/types';
 
 type CycleSetting = <
   TCategory extends keyof ReaderSettings,
@@ -39,18 +48,23 @@ interface ReaderSidebarProps {
   activeChapterIndex: number;
   activePage: number;
   activePageNumber: number;
-  chapterStartGroupIndex: number;
   closeComicMode: () => void;
+  copyShareUrl: () => void;
   cycleSetting: CycleSetting;
   displayGroups: ReaderGroup[];
   folderMode: FolderMode;
   goToAdjacentChapter: (delta: -1 | 1) => void;
   goToAdjacentGroup: (delta: number) => void;
   goToChapterAtIndex: (index: number) => void;
-  imageIds: string[];
+  getThumbnailUrl: (image: ReaderImage) => string;
+  images: ReaderImage[];
+  isPasswordMode: boolean;
+  jumpToChapterStart: () => void;
   logicalActiveGroupIndex: number;
   parentChapters: Chapter[];
+  password: string | null;
   readerTitle: string;
+  requestPassword: () => void;
   scrollToGroup: (index: number, behavior?: ScrollBehavior) => void;
   setIsSettingsOpen: (open: boolean) => void;
   setSettingsTab: (tab: SettingsTab) => void;
@@ -65,18 +79,23 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   activeChapterIndex,
   activePage,
   activePageNumber,
-  chapterStartGroupIndex,
   closeComicMode,
+  copyShareUrl,
   cycleSetting,
   displayGroups,
   folderMode,
   goToAdjacentChapter,
   goToAdjacentGroup,
   goToChapterAtIndex,
-  imageIds,
+  getThumbnailUrl,
+  images,
+  isPasswordMode,
+  jumpToChapterStart,
   logicalActiveGroupIndex,
   parentChapters,
+  password,
   readerTitle,
+  requestPassword,
   scrollToGroup,
   setIsSettingsOpen,
   setSettingsTab,
@@ -84,6 +103,85 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   statusMessage,
   toggleSetting,
 }: ReaderSidebarProps) {
+  const [tooltip, setTooltip] = useState<{
+    text: string;
+    align: 'right' | null;
+    rect: DOMRect;
+    mouseX: number;
+  } | null>(null);
+  const [isTooltipFaded, setIsTooltipFaded] = useState(false);
+  const tooltipTimeoutRef = useRef<number | null>(null);
+  const tooltipTargetRef = useRef<HTMLElement | null>(null);
+
+  const clearTooltipTimeout = useCallback(() => {
+    if (tooltipTimeoutRef.current !== null) {
+      window.clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearTooltipTimeout, [clearTooltipTimeout]);
+
+  const handleMouseOver = useCallback(
+    (event: MouseEvent<HTMLElement>) => {
+      if (window.innerWidth <= 768) {
+        return;
+      }
+
+      const closestTip = (event.target as HTMLElement).closest<HTMLElement>(
+        '[data-tip]',
+      );
+      if (!closestTip || tooltipTargetRef.current === closestTip) {
+        return;
+      }
+
+      const text = closestTip.getAttribute('data-tip');
+      if (!text) {
+        return;
+      }
+
+      tooltipTargetRef.current = closestTip;
+      setTooltip({
+        text,
+        align:
+          closestTip.getAttribute('data-tip-align') === 'right'
+            ? 'right'
+            : null,
+        rect: closestTip.getBoundingClientRect(),
+        mouseX: event.clientX,
+      });
+      setIsTooltipFaded(false);
+      clearTooltipTimeout();
+      tooltipTimeoutRef.current = window.setTimeout(() => {
+        setIsTooltipFaded(true);
+      }, 3000);
+    },
+    [clearTooltipTimeout],
+  );
+
+  const handleMouseOut = useCallback(
+    (event: MouseEvent<HTMLElement>) => {
+      const closestTip = (event.target as HTMLElement).closest<HTMLElement>(
+        '[data-tip]',
+      );
+      if (!closestTip || tooltipTargetRef.current !== closestTip) {
+        return;
+      }
+
+      if (
+        event.relatedTarget instanceof Node &&
+        closestTip.contains(event.relatedTarget)
+      ) {
+        return;
+      }
+
+      tooltipTargetRef.current = null;
+      setTooltip(null);
+      clearTooltipTimeout();
+    },
+    [clearTooltipTimeout],
+  );
+
   const hasAdjacentChapters = parentChapters.length > 1;
   const isRtl = settings.lyt.direction === 'rtl';
   const isAtFirstGroup = activeGroupIndex === 0;
@@ -121,10 +219,6 @@ export const ReaderSidebar = memo(function ReaderSidebar({
     },
     [],
   );
-
-  const handleJumpToStart = useCallback(() => {
-    scrollToGroup(chapterStartGroupIndex);
-  }, [chapterStartGroupIndex, scrollToGroup]);
 
   const handleOpenSettings = useCallback(() => {
     setSettingsTab('Reader');
@@ -252,16 +346,22 @@ export const ReaderSidebar = memo(function ReaderSidebar({
   const handleCopyUrl = useCallback(
     (event: MouseEvent<HTMLAnchorElement>) => {
       event.preventDefault();
-      const url = window.location.href.replace(/\/u\/\d+/, '');
-      navigator.clipboard.writeText(url).catch((err) => {
-        console.error('Failed to copy URL: ', err);
-      });
+      copyShareUrl();
     },
-    [],
+    [copyShareUrl],
+  );
+
+  const tooltipParts = useMemo(
+    () => tooltip?.text.split(/(\[.+?\])/) ?? [],
+    [tooltip],
   );
 
   return (
-    <aside className="">
+    <aside
+      className=""
+      onMouseOver={handleMouseOver}
+      onMouseOut={handleMouseOut}
+    >
       <div
         className="hide-side UI Button MultiStateButton"
         data-tip="Show/hide sidebar [S]"
@@ -288,7 +388,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
           <div className="rdr-selector-top">
             <button
               className="rdr-selector-vol ico-btn prev"
-              data-tip="Next volume [.]"
+              data-tip="Next page [.]"
               onClick={handlePrevPage}
               type="button"
             />
@@ -311,6 +411,29 @@ export const ReaderSidebar = memo(function ReaderSidebar({
                 <button className="ico-btn download-cancel" type="button" />
               </div>
             </div> */}
+            <button
+              className="ico-btn UI Button password"
+              data-password-active={password !== null}
+              data-tip={
+                password
+                  ? 'Set new/Clear decryption password [K]'
+                  : 'Set decryption password [K]'
+              }
+              onClick={requestPassword}
+              type="button"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width={20}
+                height={20}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M2.5 18.5v-1h19v1zm.535-5.973l-.762-.442l.965-1.693h-1.93v-.884h1.93l-.965-1.642l.762-.443L4 9.066l.966-1.643l.761.443l-.965 1.642h1.93v.884h-1.93l.965 1.693l-.762.442L4 10.835zm8 0l-.762-.442l.966-1.693H9.308v-.884h1.93l-.965-1.642l.762-.443L12 9.066l.966-1.643l.761.443l-.965 1.642h1.93v.884h-1.93l.965 1.693l-.762.442L12 10.835zm8 0l-.762-.442l.966-1.693h-1.931v-.884h1.93l-.965-1.642l.762-.443L20 9.066l.966-1.643l.761.443l-.965 1.642h1.93v.884h-1.93l.965 1.693l-.762.442L20 10.835z"
+                ></path>
+              </svg>
+            </button>
             <a
               className="rdr-share ico-btn "
               data-tip="Copy short link [R]"
@@ -320,17 +443,17 @@ export const ReaderSidebar = memo(function ReaderSidebar({
             />
             <button
               className="ico-btn jump"
-              data-tip="Jump to chapter... [J]"
-              onClick={handleJumpToStart}
+              data-tip="Jump to top [J]"
+              onClick={jumpToChapterStart}
               type="button"
             />
-            <button
+            {/* <button
               className="ico-btn search"
               data-tip="Search the manga... [Ctrl]+[F]"
               onClick={handleOpenSettings}
               style={{ display: 'none' }}
               type="button"
-            />
+            /> */}
           </div>
           <div className="rdr-selector-mid">
             <button
@@ -347,10 +470,10 @@ export const ReaderSidebar = memo(function ReaderSidebar({
                 onChange={handlePageSelectChange}
                 value={String(activePage)}
               >
-                {imageIds.map((id, index) => (
+                {images.map((image, index) => (
                   <option
                     className="UI SimpleListItem"
-                    key={id}
+                    key={image.id}
                     value={String(index)}
                   >
                     Page {index + 1}
@@ -408,7 +531,7 @@ export const ReaderSidebar = memo(function ReaderSidebar({
           <div className="rdr-selector-bot">
             <button
               className="rdr-selector-vol ico-btn next"
-              data-tip="Previous volume [,]"
+              data-tip="Previous page [,]"
               onClick={handleNextPage}
               type="button"
             />
@@ -458,46 +581,53 @@ export const ReaderSidebar = memo(function ReaderSidebar({
           </div>
         </section>
         <section className="rdr-groups UI List Selector Tabs">
-          <div className="UI SimpleListItem">Google Drive folder scan</div>
+          {/* <div className="UI SimpleListItem">Truyen Drive folder scan</div> */}
           <div className="is-active UI SimpleListItem">
-            {imageIds.length} image pages detected
+            {images.length} image pages detected
           </div>
         </section>
 
         <section className="rdr-previews">
-          <div
-            className="header UI Button MultiStateButton"
-            {...{ 'data-apr.previews': settings.apr.previews }}
-            onClick={handleTogglePreviews}
-            role="button"
-            tabIndex={0}
-          >
-            <span>Previews</span>
-            <div className="ico-btn expander" data-tip="Show previews [P]" />
-          </div>
-          <div className="rdr-previews-gallery UI List Selector Tabs">
-            {imageIds.map((id, index) => {
-              const previewGroupIndex = findGroupIndexForPage(
-                displayGroups,
-                index,
-              );
-
-              return (
-                <img
-                  className={
-                    previewGroupIndex === activeGroupIndex
-                      ? 'is-active'
-                      : undefined
-                  }
-                  data-group-index={String(previewGroupIndex)}
-                  key={id}
-                  loading="lazy"
-                  onClick={handlePreviewClick}
-                  src={`${getImageUrl(id)}=w400-h380-p-k-rw-v1-nu-iv1?auditContext=thumbnail`}
+          {!isPasswordMode && (
+            <>
+              <div
+                className="header UI Button MultiStateButton"
+                {...{ 'data-apr.previews': settings.apr.previews }}
+                onClick={handleTogglePreviews}
+                role="button"
+                tabIndex={0}
+              >
+                <span>Previews</span>
+                <div
+                  className="ico-btn expander"
+                  data-tip="Show previews [P]"
                 />
-              );
-            })}
-          </div>
+              </div>
+              <div className="rdr-previews-gallery UI List Selector Tabs">
+                {images.map((image, index) => {
+                  const previewGroupIndex = findGroupIndexForPage(
+                    displayGroups,
+                    index,
+                  );
+
+                  return (
+                    <img
+                      className={
+                        previewGroupIndex === activeGroupIndex
+                          ? 'is-active'
+                          : undefined
+                      }
+                      data-group-index={String(previewGroupIndex)}
+                      key={image.id}
+                      loading="lazy"
+                      onClick={handlePreviewClick}
+                      src={getThumbnailUrl(image)}
+                    />
+                  );
+                })}
+              </div>
+            </>
+          )}
         </section>
         <section className="rdr-description">
           <div>
@@ -511,6 +641,44 @@ export const ReaderSidebar = memo(function ReaderSidebar({
           </div>
         </section>
       </div>
+      {tooltip && (
+        <div
+          className={`Tooltippy ${isTooltipFaded ? 'fadeOut' : ''}`}
+          style={{
+            position: 'fixed',
+            display: 'block',
+            zIndex: 3000,
+            ...(tooltip.align === 'right'
+              ? {
+                  left: `${tooltip.rect.right + 4}px`,
+                  top: `${tooltip.rect.top}px`,
+                }
+              : {
+                  bottom: `${window.innerHeight - tooltip.rect.top + 2}px`,
+                  ...(tooltip.mouseX > window.innerWidth / 2
+                    ? {
+                        right: `${window.innerWidth - tooltip.rect.right}px`,
+                        left: 'unset',
+                      }
+                    : {
+                        left: `${tooltip.rect.left}px`,
+                        right: 'unset',
+                      }),
+                }),
+          }}
+        >
+          {tooltipParts.map((part, i) => {
+            if (part.startsWith('[') && part.endsWith(']')) {
+              return (
+                <span key={i} className="Tooltippy-key">
+                  {part.slice(1, -1)}
+                </span>
+              );
+            }
+            return part;
+          })}
+        </div>
+      )}
     </aside>
   );
 });

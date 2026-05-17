@@ -12,9 +12,9 @@ interface PageSelectorProps {
   activePageNumber: number;
   displayGroups: ReaderGroup[];
   direction: DirectionMode;
-  imageIds: string[];
   isGroupLoaded: (index: number) => boolean;
   isSelectorVisible: boolean;
+  pageCount: number;
   scrollToGroup: (index: number, behavior?: ScrollBehavior) => void;
 }
 
@@ -23,9 +23,9 @@ export const PageSelector = memo(function PageSelector({
   activePageNumber,
   displayGroups,
   direction,
-  imageIds,
   isGroupLoaded,
   isSelectorVisible,
+  pageCount,
   scrollToGroup,
 }: PageSelectorProps) {
   const orderedGroups =
@@ -68,7 +68,7 @@ export const PageSelector = memo(function PageSelector({
   return (
     <div className={`rdr-page-selector${isSelectorVisible ? ' vis' : ''}`}>
       <div className="rdr-page-selector-counter">
-        {activePageNumber} / {imageIds.length}
+        {activePageNumber} / {pageCount}
       </div>
       <div className="rdr-page-selector-keys">
         {orderedGroups.map((group, logicalIndex) => {

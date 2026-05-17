@@ -1,25 +1,30 @@
 import { useCallback, useEffect, useEffectEvent, useRef } from 'react';
 
-import { getImageUrl, type ReaderGroup } from '../lib/readerUtils';
+import {
+  getGroupsInRange,
+  getMaxGroupDistance,
+  type ReaderGroup,
+} from '../lib/readerUtils';
+import type { ReaderImage } from '../providers/types';
 
 interface UseReaderPreloadParams {
   activeGroupIndex: number;
   displayGroups: ReaderGroup[];
   initialGroupIndex: number;
+  getImageUrl: (image: ReaderImage) => string;
   isInitialScrollDone: boolean;
+  isPasswordMode: boolean;
   isOpen: boolean;
   preloadDistance: number;
-}
-
-function getMaxPreloadDistance(preloadDistance: number, groupCount: number) {
-  return preloadDistance === 100 ? groupCount : Math.max(preloadDistance, 1);
 }
 
 export function useReaderPreload({
   activeGroupIndex,
   displayGroups,
+  getImageUrl,
   initialGroupIndex,
   isInitialScrollDone,
+  isPasswordMode,
   isOpen,
   preloadDistance,
 }: UseReaderPreloadParams) {
@@ -37,7 +42,11 @@ export function useReaderPreload({
 
   const isGroupPreloaded = useCallback(
     (index: number) => {
-      const maxDistance = getMaxPreloadDistance(
+      if (isPasswordMode) {
+        return false;
+      }
+
+      const maxDistance = getMaxGroupDistance(
         preloadDistance,
         displayGroups.length,
       );
@@ -56,6 +65,7 @@ export function useReaderPreload({
       displayGroups.length,
       initialGroupIndex,
       isInitialScrollDone,
+      isPasswordMode,
       preloadDistance,
     ],
   );
@@ -65,8 +75,13 @@ export function useReaderPreload({
       resetPreloadState();
       return;
     }
+    if (isPasswordMode) {
+      // Decrypted images manage their own preload window.
+      resetPreloadState();
+      return;
+    }
 
-    const maxDistance = getMaxPreloadDistance(
+    const maxDistance = getMaxGroupDistance(
       preloadDistance,
       displayGroups.length,
     );
@@ -75,20 +90,16 @@ export function useReaderPreload({
       : initialGroupIndex;
     const preloadUrls: string[] = [];
 
-    for (let distance = 1; distance <= maxDistance; distance += 1) {
-      [anchorGroupIndex + distance, anchorGroupIndex - distance].forEach(
-        (groupIndex) => {
-          const group = displayGroups[groupIndex];
-          if (!group) {
-            return;
-          }
-
-          group.pages.forEach((page) => {
-            preloadUrls.push(getImageUrl(page.id));
-          });
-        },
-      );
-    }
+    getGroupsInRange(
+      displayGroups,
+      anchorGroupIndex,
+      maxDistance,
+      false,
+    ).forEach((group) => {
+      group.pages.forEach((page) => {
+        preloadUrls.push(getImageUrl(page));
+      });
+    });
 
     preloadUrls.forEach((url) => {
       if (preloadCacheRef.current.has(url)) {
@@ -116,8 +127,10 @@ export function useReaderPreload({
   }, [
     activeGroupIndex,
     displayGroups,
+    getImageUrl,
     initialGroupIndex,
     isInitialScrollDone,
+    isPasswordMode,
     isOpen,
     preloadDistance,
     resetPreloadState,

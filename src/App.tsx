@@ -12,7 +12,9 @@ import { useComicMode } from './hooks/useComicMode';
 import { useReaderControls } from './hooks/useReaderControls';
 import { useReaderHistory } from './hooks/useReaderHistory';
 import { useInitialScroll } from './hooks/useInitialScroll';
+import { useImageDecryptor } from './hooks/useImageDecryptor';
 import { useKeyboardHandler } from './hooks/useKeyboardHandler';
+import { useMobileTtbSticky } from './hooks/useMobileTtbSticky';
 import { useReaderPreload } from './hooks/useReaderPreload';
 import { useReaderSession } from './hooks/useReaderSession';
 import { useReaderUiState } from './hooks/useReaderUiState';
@@ -26,11 +28,18 @@ import {
 } from './lib/readerUtils';
 import { getThemeStyle, useSettings } from './useSettings';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
+import { useProvider } from './contexts/ProviderContext';
+import type { ReaderImage } from './providers/types';
 
 function AppContent() {
+  const provider = useProvider();
   const [initialReaderState] = useState(() =>
     parseReaderStateFromUrl(window.location.href),
   );
+  const [urlPassword] = useState(() =>
+    new URL(window.location.href).searchParams.get('password'),
+  );
+  const [manualPassword, setManualPassword] = useState<string | null>(null);
   const {
     settings,
     cycleSetting,
@@ -39,6 +48,8 @@ function AppContent() {
     updateSetting,
   } = useSettings();
   const imageWrapRef = useRef<HTMLDivElement | null>(null);
+  const mainRef = useRef<HTMLElement | null>(null);
+  const readerPortalRef = useRef<HTMLDivElement | null>(null);
   const groupRefs = useRef<Array<HTMLDivElement | null>>([]);
   const currentPageRef = useRef(-1);
   const historyPageRef = useRef<number | null>(null);
@@ -63,6 +74,9 @@ function AppContent() {
     historyPageRef,
     isHandlingPopStateRef,
   });
+  const handleResetPassword = useCallback(() => {
+    setManualPassword(null);
+  }, []);
 
   const {
     activeFolderId,
@@ -71,9 +85,10 @@ function AppContent() {
     closeComicMode,
     folderDetails,
     folderMode,
+    folderPassword,
     goToAdjacentChapter,
     goToChapterAtIndex,
-    imageIds,
+    images,
     isAutoOpening,
     isModePickerOpen,
     isOpen,
@@ -87,21 +102,25 @@ function AppContent() {
     beginReaderSession,
     initialChapterId: initialReaderState.chapterId,
     initialPage: initialReaderState.page,
+    onResetPassword: handleResetPassword,
     onResetUi: resetReaderUi,
     resetHistoryState,
   });
 
   const displayGroups = useMemo(
-    () =>
-      buildPageGroups(imageIds, settings.lyt.spread, settings.lyt.direction),
-    [imageIds, settings.lyt.direction, settings.lyt.spread],
+    () => buildPageGroups(images, settings.lyt.spread, settings.lyt.direction),
+    [images, settings.lyt.direction, settings.lyt.spread],
   );
+  const imageIds = useMemo(() => images.map((image) => image.id), [images]);
   const themeStyle = useMemo(() => getThemeStyle(settings.thm), [settings.thm]);
   const activePage = displayGroups[activeGroupIndex]?.pages[0]?.index ?? 0;
-  const activePageNumber = imageIds.length === 0 ? 0 : activePage + 1;
+  const activePageNumber = images.length === 0 ? 0 : activePage + 1;
   const activeGroup = displayGroups[activeGroupIndex];
   const hasAdjacentChapters = parentChapters.length > 1;
+  const hasNextChapter =
+    parentChapters.length > 1 && activeChapterIndex < parentChapters.length - 1;
   const isRtl = settings.lyt.direction === 'rtl';
+  const isTtb = settings.lyt.direction === 'ttb';
   const isAtFirstGroup = activeGroupIndex === 0;
   const isAtLastGroup =
     displayGroups.length > 0 && activeGroupIndex === displayGroups.length - 1;
@@ -121,9 +140,35 @@ function AppContent() {
   const readerTitle =
     folderDetails?.title ||
     parentChapters[activeChapterIndex]?.name ||
-    'Google Drive Comic Reader';
+    'Truyen Drive Comic Reader';
   const activeChapterId =
     parentChapters[activeChapterIndex]?.id ?? activeFolderId;
+  const password = manualPassword ?? folderPassword ?? urlPassword;
+  const imagePassword = folderMode === 'images' ? password : null;
+  const isPasswordMode = imagePassword !== null;
+  const getImageUrl = useCallback(
+    (image: ReaderImage) => provider.getImageUrl(image),
+    [provider],
+  );
+  const buildFetchUrl = useCallback(
+    (image: ReaderImage) => provider.buildFetchUrl(image),
+    [provider],
+  );
+  const getThumbnailUrl = useCallback(
+    (image: ReaderImage) =>
+      provider.getThumbnailUrl(image.id) ?? provider.getImageUrl(image),
+    [provider],
+  );
+  const { decryptedSrcs } = useImageDecryptor(
+    images,
+    imagePassword,
+    displayGroups,
+    activeGroupIndex,
+    chapterStartGroupIndex,
+    isScrollReady,
+    settings.bhv.preload,
+    buildFetchUrl,
+  );
 
   const {
     goToAdjacentGroup,
@@ -142,6 +187,8 @@ function AppContent() {
     displayGroups,
     groupRefs,
     imageWrapRef,
+    mainRef,
+    scrollContainerRef: readerPortalRef,
     isScrollReady,
     isOpen,
     setActiveGroupIndex,
@@ -167,21 +214,31 @@ function AppContent() {
   const { isGroupPreloaded, preloadImageRefs } = useReaderPreload({
     activeGroupIndex,
     displayGroups,
+    getImageUrl,
     initialGroupIndex: chapterStartGroupIndex,
     isInitialScrollDone: isScrollReady,
+    isPasswordMode,
     isOpen,
     preloadDistance: settings.bhv.preload,
   });
   const { tooWideGroups } = useWideGroupTracker({
     displayGroups,
     groupRefs,
-    imageIds,
     imageLoadVersion,
     isOpen,
     settings,
   });
+  const { handleTtbTap, isMobile } = useMobileTtbSticky({
+    isOpen,
+    isTtb,
+    mainRef,
+    scrollContainerRef: readerPortalRef,
+    settings,
+    updateSetting,
+  });
 
   useInitialScroll({
+    activeFolderId,
     activeGroupIndex,
     chapterStartGroupIndex,
     currentPageRef,
@@ -307,14 +364,35 @@ function AppContent() {
     ],
   );
 
+  const jumpToChapterStart = useCallback(() => {
+    scrollToGroup(chapterStartGroupIndex);
+  }, [chapterStartGroupIndex, scrollToGroup]);
+
+  const copyShareUrl = useCallback(() => {
+    const url = window.location.href.replace(/\/u\/\d+/, '');
+    navigator.clipboard.writeText(url).catch((err) => {
+      console.error('Failed to copy URL: ', err);
+    });
+  }, []);
+
+  const requestPassword = useCallback(() => {
+    console.log({ password });
+    const value = window.prompt('Enter decryption password:', password ?? '');
+    setManualPassword(value && value.length > 0 ? value : null);
+  }, [password]);
+
   useKeyboardHandler({
     closeComicMode,
+    copyShareUrl,
     cycleSetting,
+    goToAdjacentChapter: goToAdjacentChapterFromReader,
     isComicSurfaceOpen,
     isOpen,
     isSettingsOpen,
+    jumpToChapterStart,
     navigateGroupOrChapter,
     performVerticalStep,
+    requestPassword,
     setIsSettingsOpen,
     settings,
     toggleSetting,
@@ -347,7 +425,7 @@ function AppContent() {
   }, [activePage, displayGroups.length, isOpen]);
 
   return (
-    <>
+    <div style={themeStyle as CSSProperties}>
       <button
         className="truyendrive-launcher"
         onClick={() => openComicMode()}
@@ -358,16 +436,18 @@ function AppContent() {
       </button>
 
       {folderMode === 'chapters' && !isOpen && !isAutoOpening && (
-        <main id="rdr-main" style={themeStyle as CSSProperties} tabIndex={-1}>
-          <ChapterList
-            chapters={chapters}
-            folderDetails={folderDetails}
-            onClose={() => resetReaderState(true)}
-            onSelectChapter={handleSelectChapter}
-            statusMessage={statusMessage}
-            title={readerTitle}
-          />
-        </main>
+        <div className="truyendrive-portal">
+          <main tabIndex={-1}>
+            <ChapterList
+              chapters={chapters}
+              folderDetails={folderDetails}
+              onClose={() => resetReaderState(true)}
+              onSelectChapter={handleSelectChapter}
+              statusMessage={statusMessage}
+              title={readerTitle}
+            />
+          </main>
+        </div>
       )}
 
       {isModePickerOpen && !isAutoOpening && (
@@ -377,92 +457,102 @@ function AppContent() {
       {isOpen && (
         <>
           <style>{readerStyles}</style>
+          <div className="truyendrive-portal" ref={readerPortalRef}>
+            <div className={getRootClasses(settings)}>
+              <main ref={mainRef} tabIndex={-1}>
+                <ReaderSidebar
+                  activeGroup={activeGroup}
+                  activeChapterIndex={activeChapterIndex}
+                  activeGroupIndex={activeGroupIndex}
+                  logicalActiveGroupIndex={logicalActiveGroupIndex}
+                  activePage={activePage}
+                  activePageNumber={activePageNumber}
+                  closeComicMode={closeComicMode}
+                  copyShareUrl={copyShareUrl}
+                  cycleSetting={cycleSetting}
+                  displayGroups={displayGroups}
+                  folderMode={folderMode}
+                  goToAdjacentChapter={goToAdjacentChapterFromReader}
+                  goToAdjacentGroup={goToAdjacentGroup}
+                  goToChapterAtIndex={goToChapterAtIndexFromReader}
+                  getThumbnailUrl={getThumbnailUrl}
+                  images={images}
+                  isPasswordMode={isPasswordMode}
+                  jumpToChapterStart={jumpToChapterStart}
+                  parentChapters={parentChapters}
+                  password={password}
+                  readerTitle={readerTitle}
+                  requestPassword={requestPassword}
+                  scrollToGroup={scrollToGroup}
+                  setIsSettingsOpen={setIsSettingsOpen}
+                  setSettingsTab={setSettingsTab}
+                  settings={settings}
+                  statusMessage={statusMessage}
+                  toggleSetting={toggleSetting}
+                />
 
-          <main
-            className={getRootClasses(settings)}
-            id="rdr-main"
-            style={themeStyle as CSSProperties}
-            tabIndex={-1}
-          >
-            <ReaderSidebar
-              activeGroup={activeGroup}
-              activeChapterIndex={activeChapterIndex}
-              activeGroupIndex={activeGroupIndex}
-              logicalActiveGroupIndex={logicalActiveGroupIndex}
-              activePage={activePage}
-              activePageNumber={activePageNumber}
-              chapterStartGroupIndex={chapterStartGroupIndex}
-              closeComicMode={closeComicMode}
-              cycleSetting={cycleSetting}
-              displayGroups={displayGroups}
-              folderMode={folderMode}
-              goToAdjacentChapter={goToAdjacentChapterFromReader}
-              goToAdjacentGroup={goToAdjacentGroup}
-              goToChapterAtIndex={goToChapterAtIndexFromReader}
-              imageIds={imageIds}
-              parentChapters={parentChapters}
-              readerTitle={readerTitle}
-              scrollToGroup={scrollToGroup}
-              setIsSettingsOpen={setIsSettingsOpen}
-              setSettingsTab={setSettingsTab}
-              settings={settings}
-              statusMessage={statusMessage}
-              toggleSetting={toggleSetting}
-            />
+                <PageSelector
+                  activeGroupIndex={activeGroupIndex}
+                  activePageNumber={activePageNumber}
+                  displayGroups={displayGroups}
+                  direction={settings.lyt.direction}
+                  isGroupLoaded={isGroupLoaded}
+                  isSelectorVisible={isSelectorVisible}
+                  pageCount={images.length}
+                  scrollToGroup={scrollToGroup}
+                />
 
-            <PageSelector
-              activeGroupIndex={activeGroupIndex}
-              activePageNumber={activePageNumber}
-              displayGroups={displayGroups}
-              imageIds={imageIds}
-              isGroupLoaded={isGroupLoaded}
-              isSelectorVisible={isSelectorVisible}
-              direction={settings.lyt.direction}
-              scrollToGroup={scrollToGroup}
-            />
+                <ReaderArea
+                  displayGroups={displayGroups}
+                  groupRefs={groupRefs}
+                  getImageUrl={getImageUrl}
+                  hoverEdge={hoverEdge}
+                  imageWrapRef={imageWrapRef}
+                  isGroupPreloaded={isGroupPreloaded}
+                  isMobile={isMobile}
+                  isPasswordMode={isPasswordMode}
+                  isScrollReady={isScrollReady}
+                  isTtb={isTtb}
+                  navigateGroupOrChapter={navigateGroupOrChapter}
+                  onMobileTtbTap={handleTtbTap}
+                  onPageLoad={handlePageLoad}
+                  performVerticalPageTurnOrChapter={
+                    performVerticalPageTurnOrChapter
+                  }
+                  preloadImageRefs={preloadImageRefs}
+                  setHoverEdge={setHoverEdge}
+                  setImageLoadVersion={setImageLoadVersion}
+                  settings={settings}
+                  showPageSelector={showPageSelector}
+                  showZoomControls={showZoomControls}
+                  syncActiveGroupFromScroll={syncActiveGroupFromScroll}
+                  decryptedSrcs={decryptedSrcs}
+                  tooWideGroups={tooWideGroups}
+                  hasNextChapter={hasNextChapter}
+                  goToAdjacentChapter={goToAdjacentChapterFromReader}
+                />
 
-            <ReaderArea
-              displayGroups={displayGroups}
-              groupRefs={groupRefs}
-              hoverEdge={hoverEdge}
-              imageWrapRef={imageWrapRef}
-              isGroupPreloaded={isGroupPreloaded}
-              isScrollReady={isScrollReady}
-              navigateGroupOrChapter={navigateGroupOrChapter}
-              onPageLoad={handlePageLoad}
-              performVerticalPageTurnOrChapter={
-                performVerticalPageTurnOrChapter
-              }
-              preloadImageRefs={preloadImageRefs}
-              setHoverEdge={setHoverEdge}
-              setImageLoadVersion={setImageLoadVersion}
-              settings={settings}
-              showPageSelector={showPageSelector}
-              showZoomControls={showZoomControls}
-              syncActiveGroupFromScroll={syncActiveGroupFromScroll}
-              tooWideGroups={tooWideGroups}
-            />
-
-            <ZoomControls
-              isVisible={isZoomVisible}
-              onZoomChange={handleZoomChange}
-              showZoomControls={showZoomControls}
-              zoom={settings.lyt.zoom}
-            />
-
-            <SettingsModal
-              activeTab={settingsTab}
-              onClose={() => setIsSettingsOpen(false)}
-              onTabChange={setSettingsTab}
-              open={isSettingsOpen}
-              resetCustomTheme={resetCustomTheme}
-              settings={settings}
-              updateSetting={updateSetting}
-            />
-          </main>
+                <ZoomControls
+                  isVisible={isZoomVisible}
+                  onZoomChange={handleZoomChange}
+                  showZoomControls={showZoomControls}
+                  zoom={settings.lyt.zoom}
+                />
+              </main>
+              <SettingsModal
+                activeTab={settingsTab}
+                onClose={() => setIsSettingsOpen(false)}
+                onTabChange={setSettingsTab}
+                open={isSettingsOpen}
+                resetCustomTheme={resetCustomTheme}
+                settings={settings}
+                updateSetting={updateSetting}
+              />
+            </div>
+          </div>
         </>
       )}
-    </>
+    </div>
   );
 }
 

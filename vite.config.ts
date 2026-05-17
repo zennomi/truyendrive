@@ -11,15 +11,18 @@ export default defineConfig({
       userscript: {
         name: 'TruyenDrive',
         namespace: 'http://tampermonkey.net/',
-        version: '1.0.1',
+        version: '2.0.0',
         description: 'Best Comic Reader for Google Drive',
         author: 'Zennomi',
-        match: ['https://drive.google.com/drive/*'],
-        icon: 'https://raw.githubusercontent.com/zennomi/truyendrive/main/src/assets/truyendrive.webp',
+        match: [
+          'https://drive.google.com/drive/*',
+          'https://onedrive.live.com/*',
+        ],
+        icon: 'https://zennomi.github.io/truyendrive/icon.webp',
         updateURL:
-          'https://raw.githubusercontent.com/zennomi/truyendrive/release/truyendrive-userscript.meta.js',
+          'https://zennomi.github.io/truyendrive/truyendrive-userscript.meta.js',
         downloadURL:
-          'https://raw.githubusercontent.com/zennomi/truyendrive/release/truyendrive-userscript.user.js',
+          'https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js',
       },
       build: {
         metaFileName: true,

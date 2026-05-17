@@ -1,9 +1,14 @@
 import type { DirectionMode, ReaderSettings } from '../useSettings';
-import { getAuthUser } from './driveApi';
+import type { ReaderImage } from '../providers/types';
+
+export type { ReaderImage };
+export type DriveImage = ReaderImage;
 
 export type ReaderPage = {
   id: string;
   index: number;
+  width: number;
+  height: number;
 };
 
 export type ReaderGroup = {
@@ -37,7 +42,7 @@ export const READER_PAGE_SEARCH_PARAM = 'truyendrive-page';
 export const READER_CHAPTER_SEARCH_PARAM = 'truyendrive-chap';
 
 export function buildPageGroups(
-  imageIds: string[],
+  images: ReaderImage[],
   spread: ReaderSettings['lyt']['spread'],
   direction: DirectionMode,
 ) {
@@ -46,20 +51,29 @@ export function buildPageGroups(
   const groups: ReaderGroup[] = [];
 
   let startIndex = 0;
-  if (oddOffset === 1 && imageIds.length > 0) {
+  if (oddOffset === 1 && images.length > 0) {
     groups.push({
       id: 'group-0',
-      pages: [{ id: imageIds[0], index: 0 }],
+      pages: [
+        {
+          id: images[0].id,
+          index: 0,
+          width: images[0].width,
+          height: images[0].height,
+        },
+      ],
     });
     startIndex = 1;
   }
 
-  for (let index = startIndex; index < imageIds.length; index += groupSize) {
-    const pages = imageIds
+  for (let index = startIndex; index < images.length; index += groupSize) {
+    const pages = images
       .slice(index, index + groupSize)
-      .map((id, offset) => ({
-        id,
+      .map((image, offset) => ({
+        id: image.id,
         index: index + offset,
+        width: image.width,
+        height: image.height,
       }));
 
     groups.push({
@@ -69,10 +83,6 @@ export function buildPageGroups(
   }
 
   return direction === 'rtl' ? [...groups].reverse() : groups;
-}
-
-export function getImageUrl(id: string, authUser = getAuthUser()) {
-  return `https://lh3.google.com/u/${authUser}/d/${id}`;
 }
 
 export function getRootClasses(settings: ReaderSettings) {
@@ -133,6 +143,41 @@ export function getChapterStartGroupIndex(
   }
 
   return direction === 'rtl' ? groupCount - 1 : 0;
+}
+
+export function getMaxGroupDistance(distance: number, groupCount: number) {
+  return distance === 100 ? groupCount : Math.max(distance, 1);
+}
+
+export function getGroupsInRange(
+  displayGroups: ReaderGroup[],
+  anchorGroupIndex: number,
+  maxDistance: number,
+  includeAnchor: boolean,
+) {
+  const groups: ReaderGroup[] = [];
+
+  for (
+    let distance = includeAnchor ? 0 : 1;
+    distance <= maxDistance;
+    distance += 1
+  ) {
+    const nextGroup = displayGroups[anchorGroupIndex + distance];
+    if (nextGroup) {
+      groups.push(nextGroup);
+    }
+
+    if (distance === 0) {
+      continue;
+    }
+
+    const previousGroup = displayGroups[anchorGroupIndex - distance];
+    if (previousGroup) {
+      groups.push(previousGroup);
+    }
+  }
+
+  return groups;
 }
 
 export function clampIndex(value: number, max: number) {
