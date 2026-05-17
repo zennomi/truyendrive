@@ -135,6 +135,10 @@ export function useImageDecryptor(
             continue;
           }
 
+          if (image.requiresDecryption === false) {
+            continue;
+          }
+
           const blob = await decryptImageBuffer(buildFetchUrl(image), password);
 
           if (decryptGenerationRef.current !== decryptGeneration) {

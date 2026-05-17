@@ -242,6 +242,7 @@ function toFolderPageResult(
       chapters.push({
         creator: getCreator(row),
         id: getFolderPath(row, folderId),
+        kind: 'folder',
         name: fileName,
         updatedAt: parseModifiedAt(row),
       });
@@ -447,6 +448,11 @@ export class OneDriveProvider implements DriveProvider {
     }
   }
 
+  getResourceFromUrl() {
+    const folderId = this.getFolderIdFromUrl();
+    return folderId ? { id: folderId, kind: 'folder' as const } : null;
+  }
+
   getAuthUser() {
     return (
       this.getFolderIdFromUrl()?.match(/^\/personal\/([^/]+)/)?.[1] ??
@@ -593,6 +599,10 @@ export class OneDriveProvider implements DriveProvider {
       toFolderPageResult(getRows(response), folderId),
       getNextHref(response),
     ];
+  }
+
+  async fetchPdfImages(_pdfId: string): Promise<ReaderImage[]> {
+    throw new Error('PDF reader is not supported for OneDrive yet');
   }
 
   private updateFolderMetadata(

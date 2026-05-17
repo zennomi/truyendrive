@@ -318,6 +318,8 @@ export const ReaderArea = memo(function ReaderArea({
             }}
           >
             {group.pages.map((page) => {
+              const shouldDecryptPage =
+                isPasswordMode && page.requiresDecryption !== false;
               const decryptedSrc = isPasswordMode
                 ? decryptedSrcs.get(page.id)
                 : undefined;
@@ -332,7 +334,7 @@ export const ReaderArea = memo(function ReaderArea({
                     }
                   : undefined;
 
-              if (isPasswordMode && !decryptedSrc) {
+              if (shouldDecryptPage && !decryptedSrc) {
                 return (
                   <img
                     alt={`Page ${page.index + 1}`}

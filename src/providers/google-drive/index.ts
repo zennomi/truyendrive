@@ -3,10 +3,12 @@ import {
   fetchFolderDetailsGuest,
   fetchFolderItems,
   fetchFolderItemsGuest,
+  fetchPdfImages as fetchGoogleDrivePdfImages,
   type DriveAccountData,
 } from '../../lib/driveApi';
 import type {
   Chapter,
+  DriveResource,
   DriveProvider,
   FolderDetails,
   FolderPageResult,
@@ -22,7 +24,9 @@ type PendingInit = {
 };
 
 const FOLDER_ID_PATTERN = /\/folders\/([^/?#]+)/;
+const FILE_ID_PATTERN = /\/file\/d\/([^/?#]+)/;
 const DRIVE_FOLDER_MIME = 'application/vnd.google-apps.folder';
+const PDF_MIME = 'application/pdf';
 const SHORTCUT_MIME = 'application/vnd.google-apps.shortcut';
 const PASSWORD_FILE_PATTERN = /^\.password\.(.+)\.truyendrive$/;
 
@@ -117,7 +121,7 @@ function extractChapters(items: DriveFolderItem[]): Chapter[] {
     const id = typeof item[0] === 'string' ? item[0] : '';
     const mimeType = typeof item[3] === 'string' ? item[3] : '';
 
-    if (!id || mimeType !== DRIVE_FOLDER_MIME) {
+    if (!id || (mimeType !== DRIVE_FOLDER_MIME && mimeType !== PDF_MIME)) {
       return;
     }
 
@@ -127,6 +131,7 @@ function extractChapters(items: DriveFolderItem[]): Chapter[] {
           ? item[16][7]
           : 'Unknown',
       id,
+      kind: mimeType === PDF_MIME ? 'pdf' : 'folder',
       name:
         typeof item[2] === 'string' && item[2].length > 0
           ? item[2]
@@ -145,14 +150,14 @@ function classifyItems(items: DriveFolderItem[]): FolderDetectionResult {
     return 'empty';
   }
 
-  let allFolders = true;
+  let allChapters = true;
   let allImages = true;
 
   contentItems.forEach((item) => {
     const mimeType = typeof item[3] === 'string' ? item[3] : '';
 
-    if (mimeType !== DRIVE_FOLDER_MIME) {
-      allFolders = false;
+    if (mimeType !== DRIVE_FOLDER_MIME && mimeType !== PDF_MIME) {
+      allChapters = false;
     }
 
     if (!mimeType.startsWith('image/')) {
@@ -160,7 +165,7 @@ function classifyItems(items: DriveFolderItem[]): FolderDetectionResult {
     }
   });
 
-  if (allFolders) {
+  if (allChapters) {
     return 'chapters';
   }
 
@@ -195,11 +200,29 @@ export class GoogleDriveProvider implements DriveProvider {
     return window.location.href.match(FOLDER_ID_PATTERN)?.[1] ?? null;
   }
 
+  getResourceFromUrl(): DriveResource | null {
+    const folderId = this.getFolderIdFromUrl();
+    if (folderId) {
+      return { id: folderId, kind: 'folder' };
+    }
+
+    const fileId = window.location.href.match(FILE_ID_PATTERN)?.[1];
+    if (fileId) {
+      return { id: fileId, kind: 'pdf' };
+    }
+
+    return null;
+  }
+
   getAuthUser() {
     return getAuthUser();
   }
 
   getImageUrl(image: ReaderImage) {
+    if (image.url) {
+      return image.url;
+    }
+
     if (this.isGuest) {
       return `https://drive.google.com/u/0/drive-usercontent/${image.id}`;
     }
@@ -208,6 +231,10 @@ export class GoogleDriveProvider implements DriveProvider {
   }
 
   buildFetchUrl(image: ReaderImage) {
+    if (image.fetchUrl ?? image.url) {
+      return image.fetchUrl ?? image.url ?? '';
+    }
+
     const base = this.getContentUrl(image.id);
     const width = image.width ?? 0;
     const height = image.height ?? 0;
@@ -346,6 +373,22 @@ export class GoogleDriveProvider implements DriveProvider {
     const items = resolveShortcuts(rawItems);
 
     return [toFolderPageResult(items), nextCursor ?? undefined];
+  }
+
+  async fetchPdfImages(pdfId: string) {
+    if (!this.isReady()) {
+      await this.initialize();
+    }
+
+    if (this.isGuest) {
+      return fetchGoogleDrivePdfImages(pdfId, 'guest');
+    }
+
+    if (!this.accountData) {
+      throw this.error ?? new Error('Failed to load account');
+    }
+
+    return fetchGoogleDrivePdfImages(pdfId, this.authUser);
   }
 
   async fetchFolderDetails(folderId: string): Promise<FolderDetails> {
