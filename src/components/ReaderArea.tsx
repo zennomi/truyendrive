@@ -321,24 +321,25 @@ export const ReaderArea = memo(function ReaderArea({
               const decryptedSrc = isPasswordMode
                 ? decryptedSrcs.get(page.id)
                 : undefined;
-
-              if (isPasswordMode && !decryptedSrc) {
-                const hasDimensions = page.width && page.height;
-                const placeholderStyle = hasDimensions
+              const dimensionHints =
+                page.width && page.height
                   ? {
-                      aspectRatio: page.width / page.height,
-                      width: page.width,
                       height: page.height,
+                      style: {
+                        aspectRatio: `${page.width} / ${page.height}`,
+                      },
+                      width: page.width,
                     }
                   : undefined;
 
+              if (isPasswordMode && !decryptedSrc) {
                 return (
                   <img
                     alt={`Page ${page.index + 1}`}
                     data-page-id={page.id}
                     key={page.id}
-                    style={placeholderStyle}
                     src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                    {...dimensionHints}
                   />
                 );
               }
@@ -352,6 +353,7 @@ export const ReaderArea = memo(function ReaderArea({
                   loading={isGroupPreloaded(groupIndex) ? 'eager' : 'lazy'}
                   onLoad={handlePageImageLoad}
                   src={decryptedSrc ?? getImageUrl(page)}
+                  {...dimensionHints}
                 />
               );
             })}

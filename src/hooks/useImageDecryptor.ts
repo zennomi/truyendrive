@@ -48,6 +48,9 @@ export function useImageDecryptor(
   const decryptGenerationRef = useRef(0);
   const decryptRequestRef = useRef(0);
   const pendingIdsRef = useRef(new Set<string>());
+  const anchorGroupIndex = isInitialScrollDone
+    ? activeGroupIndex
+    : initialGroupIndex;
 
   useEffect(() => {
     decryptGenerationRef.current += 1;
@@ -92,12 +95,9 @@ export function useImageDecryptor(
 
   useEffect(() => {
     const decryptRequest = (decryptRequestRef.current += 1);
-    const abortController = new AbortController();
 
     if (password === null || displayGroups.length === 0) {
-      return () => {
-        abortController.abort();
-      };
+      return;
     }
 
     const decryptGeneration = decryptGenerationRef.current;
@@ -105,9 +105,6 @@ export function useImageDecryptor(
       preloadDistance,
       displayGroups.length,
     );
-    const anchorGroupIndex = isInitialScrollDone
-      ? activeGroupIndex
-      : initialGroupIndex;
     const windowedImageIds = new Set(
       getGroupsInRange(
         displayGroups,
@@ -138,11 +135,7 @@ export function useImageDecryptor(
             continue;
           }
 
-          const blob = await decryptImageBuffer(
-            buildFetchUrl(image),
-            password,
-            abortController.signal,
-          );
+          const blob = await decryptImageBuffer(buildFetchUrl(image), password);
 
           if (decryptGenerationRef.current !== decryptGeneration) {
             return;
@@ -156,10 +149,6 @@ export function useImageDecryptor(
             return;
           }
         } catch (error) {
-          if (error instanceof DOMException && error.name === 'AbortError') {
-            return;
-          }
-
           console.error('[truyendrive] Failed to decrypt image', id, error);
         } finally {
           pendingIdsRef.current.delete(id);
@@ -168,17 +157,11 @@ export function useImageDecryptor(
     };
 
     void decryptImages();
-
-    return () => {
-      abortController.abort();
-    };
   }, [
-    activeGroupIndex,
+    anchorGroupIndex,
     displayGroups,
     imageById,
     buildFetchUrl,
-    initialGroupIndex,
-    isInitialScrollDone,
     password,
     preloadDistance,
   ]);
