@@ -53,18 +53,30 @@ async function fetchImageBlob(imageUrl: string, signal?: AbortSignal) {
   return response.blob();
 }
 
-async function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
-  const webp = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, 'image/webp', 0.92),
+async function canvasToBlob(
+  canvas: HTMLCanvasElement | OffscreenCanvas,
+): Promise<Blob> {
+  if ('convertToBlob' in canvas) {
+    try {
+      // JPEG encoding is significantly faster than WebP and perfectly fine for comics
+      return await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.9 });
+    } catch (e) {
+      return await canvas.convertToBlob({ type: 'image/webp', quality: 0.85 });
+    }
+  }
+
+  const htmlCanvas = canvas as HTMLCanvasElement;
+  const jpeg = await new Promise<Blob | null>((resolve) =>
+    htmlCanvas.toBlob(resolve, 'image/jpeg', 0.9),
   );
-  if (webp) {
-    return webp;
+  if (jpeg) {
+    return jpeg;
   }
 
   return new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob(
+    htmlCanvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error('toBlob failed'))),
-      'image/png',
+      'image/webp',
     ),
   );
 }
@@ -75,35 +87,121 @@ export async function decryptImageBuffer(
   signal?: AbortSignal,
 ): Promise<Blob> {
   const blob = await fetchImageBlob(imageUrl, signal);
-  const objectUrl = URL.createObjectURL(blob);
+
+  let imgBitmap: ImageBitmap | undefined;
+  let objectUrl: string | undefined;
+  let img: HTMLImageElement | undefined;
+
+  // Check Worker availability once, upfront — NOT inside a try/catch around
+  // the transfer.  Once the buffer is transferred to a worker it is detached
+  // and cannot be used for a main-thread fallback.
+  let workerModule: typeof import('./decryptWorker') | null = null;
+  try {
+    if (typeof Worker !== 'undefined') {
+      workerModule = await import('./decryptWorker');
+    }
+  } catch {
+    // Worker import/creation failed (CSP, etc.) — will use main-thread path
+  }
 
   try {
-    const img = await loadImage(objectUrl);
-    const canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth || img.width;
-    canvas.height = img.naturalHeight || img.height;
+    if (typeof createImageBitmap !== 'undefined') {
+      imgBitmap = await createImageBitmap(blob);
+    } else {
+      objectUrl = URL.createObjectURL(blob);
+      img = await loadImage(objectUrl);
+    }
 
-    const ctx = canvas.getContext('2d');
+    const width = imgBitmap ? imgBitmap.width : img!.naturalWidth || img!.width;
+    const height = imgBitmap
+      ? imgBitmap.height
+      : img!.naturalHeight || img!.height;
+
+    let canvas: HTMLCanvasElement | OffscreenCanvas;
+    let ctx:
+      | CanvasRenderingContext2D
+      | OffscreenCanvasRenderingContext2D
+      | null;
+
+    // willReadFrequently: true here because we need getImageData right after drawImage
+    if (typeof OffscreenCanvas !== 'undefined') {
+      canvas = new OffscreenCanvas(width, height);
+      ctx = canvas.getContext('2d', {
+        willReadFrequently: true,
+      }) as OffscreenCanvasRenderingContext2D;
+    } else {
+      canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      ctx = canvas.getContext('2d', {
+        willReadFrequently: true,
+      }) as CanvasRenderingContext2D;
+    }
+
     if (!ctx) {
       throw new Error('Failed to create image canvas context');
     }
 
-    ctx.drawImage(img, 0, 0);
-
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    const rand = mulberry32(cyrb128(password));
-
-    for (let i = 0; i < data.length; i += 4) {
-      data[i] ^= Math.floor(rand() * 256);
-      data[i + 1] ^= Math.floor(rand() * 256);
-      data[i + 2] ^= Math.floor(rand() * 256);
+    if (imgBitmap) {
+      ctx.drawImage(imgBitmap, 0, 0);
+    } else {
+      ctx.drawImage(img!, 0, 0);
     }
 
-    ctx.putImageData(imageData, 0, 0);
+    const imageData = ctx.getImageData(0, 0, width, height);
 
-    return canvasToBlob(canvas);
+    // ── XOR decryption ──────────────────────────────────────────────────
+    let decryptedBuffer: ArrayBuffer;
+
+    if (workerModule) {
+      // Worker path — buffer is transferred (zero-copy) and returned
+      decryptedBuffer = await workerModule.xorDecryptInWorker(
+        imageData.data.buffer,
+        password,
+        signal,
+      );
+    } else {
+      // Main-thread fallback
+      decryptedBuffer = xorDecryptMainThread(imageData.data.buffer, password);
+    }
+
+    // Put the decrypted pixels back onto the canvas
+    const decryptedData = new ImageData(
+      new Uint8ClampedArray(decryptedBuffer),
+      width,
+      height,
+    );
+    ctx.putImageData(decryptedData, 0, 0);
+    const resultBlob = await canvasToBlob(canvas);
+
+    return resultBlob;
   } finally {
-    URL.revokeObjectURL(objectUrl);
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    if (imgBitmap) imgBitmap.close();
   }
+}
+
+/**
+ * Main-thread fallback for XOR decryption.
+ * Used only when Web Workers are unavailable (e.g. CSP restrictions).
+ *
+ * MUST use the same PRNG as the original mulberry32:
+ * - `a += 0x6d2b79f5` (float, no `| 0`)
+ * - `Math.floor(rand() * 256)` for each byte
+ */
+function xorDecryptMainThread(
+  buffer: ArrayBuffer,
+  password: string,
+): ArrayBuffer {
+  const data = new Uint8Array(buffer);
+  const rand = mulberry32(cyrb128(password));
+
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] ^= Math.floor(rand() * 256);
+    data[i + 1] ^= Math.floor(rand() * 256);
+    data[i + 2] ^= Math.floor(rand() * 256);
+    // data[i + 3] is alpha — skip
+  }
+
+  return buffer;
 }
