@@ -4,6 +4,7 @@ import readerStyles from './assets/styles/reader.css?inline';
 import { ChapterList } from './components/ChapterList';
 import { ModePickerDialog } from './components/ModePickerDialog';
 import { PageSelector } from './components/PageSelector';
+import { PasswordDialog } from './components/PasswordDialog';
 import { ReaderArea } from './components/ReaderArea';
 import { ReaderSidebar } from './components/ReaderSidebar';
 import { ZoomControls } from './components/ZoomControls';
@@ -29,7 +30,7 @@ import {
 import { getThemeStyle, useSettings } from './useSettings';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { useProvider } from './contexts/ProviderContext';
-import type { ReaderImage } from './providers/types';
+import type { EncryptionMethod, ReaderImage } from './providers/types';
 
 function AppContent() {
   const provider = useProvider();
@@ -39,7 +40,12 @@ function AppContent() {
   const [urlPassword] = useState(() =>
     new URL(window.location.href).searchParams.get('password'),
   );
-  const [manualPassword, setManualPassword] = useState<string | null>(null);
+  const [manualPassword, setManualPassword] = useState<
+    string | null | undefined
+  >(undefined);
+  const [manualEncryptionMethod, setManualEncryptionMethod] =
+    useState<EncryptionMethod | null>(null);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const {
     settings,
     cycleSetting,
@@ -51,6 +57,7 @@ function AppContent() {
   const mainRef = useRef<HTMLElement | null>(null);
   const readerPortalRef = useRef<HTMLDivElement | null>(null);
   const groupRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const previousActiveFolderIdRef = useRef<string | null>(null);
   const currentPageRef = useRef(-1);
   const historyPageRef = useRef<number | null>(null);
   const isHandlingPopStateRef = useRef(false);
@@ -75,7 +82,9 @@ function AppContent() {
     isHandlingPopStateRef,
   });
   const handleResetPassword = useCallback(() => {
-    setManualPassword(null);
+    setManualPassword(undefined);
+    setManualEncryptionMethod(null);
+    setIsPasswordDialogOpen(false);
   }, []);
 
   const {
@@ -84,6 +93,7 @@ function AppContent() {
     chapters,
     closeComicMode,
     folderDetails,
+    folderEncryptionMethod,
     folderMode,
     folderPassword,
     goToAdjacentChapter,
@@ -106,6 +116,18 @@ function AppContent() {
     onResetUi: resetReaderUi,
     resetHistoryState,
   });
+
+  useEffect(() => {
+    const previousFolderId = previousActiveFolderIdRef.current;
+
+    if (previousFolderId !== activeFolderId) {
+      if (previousFolderId !== null) {
+        handleResetPassword();
+      }
+
+      previousActiveFolderIdRef.current = activeFolderId;
+    }
+  }, [activeFolderId, handleResetPassword]);
 
   const displayGroups = useMemo(
     () => buildPageGroups(images, settings.lyt.spread, settings.lyt.direction),
@@ -143,7 +165,12 @@ function AppContent() {
     'Truyen Drive Comic Reader';
   const activeChapterId =
     parentChapters[activeChapterIndex]?.id ?? activeFolderId;
-  const password = manualPassword ?? folderPassword ?? urlPassword;
+  const password =
+    manualPassword !== undefined
+      ? manualPassword
+      : (folderPassword ?? urlPassword);
+  const encryptionMethod =
+    manualEncryptionMethod ?? folderEncryptionMethod ?? 'scanline';
   const imagePassword = folderMode === 'images' ? password : null;
   const isPasswordMode = useMemo(
     () =>
@@ -169,6 +196,7 @@ function AppContent() {
   const { decryptedSrcs } = useImageDecryptor(
     images,
     imagePassword,
+    encryptionMethod,
     displayGroups,
     activeGroupIndex,
     chapterStartGroupIndex,
@@ -388,10 +416,8 @@ function AppContent() {
   }, []);
 
   const requestPassword = useCallback(() => {
-    console.log({ password });
-    const value = window.prompt('Enter decryption password:', password ?? '');
-    setManualPassword(value && value.length > 0 ? value : null);
-  }, [password]);
+    setIsPasswordDialogOpen(true);
+  }, []);
 
   useKeyboardHandler({
     closeComicMode,
@@ -560,6 +586,18 @@ function AppContent() {
                 settings={settings}
                 updateSetting={updateSetting}
               />
+              {isPasswordDialogOpen && (
+                <PasswordDialog
+                  currentMethod={encryptionMethod}
+                  currentPassword={password}
+                  onClose={() => setIsPasswordDialogOpen(false)}
+                  onConfirm={(nextPassword, nextMethod) => {
+                    setManualPassword(nextPassword);
+                    setManualEncryptionMethod(nextMethod);
+                    setIsPasswordDialogOpen(false);
+                  }}
+                />
+              )}
             </div>
           </div>
         </>

@@ -10,6 +10,7 @@ import { useProvider, useProviderStatus } from '../contexts/ProviderContext';
 import type {
   Chapter,
   DriveResource,
+  EncryptionMethod,
   FolderDetails,
   FolderMode,
   FolderPageResult,
@@ -106,6 +107,8 @@ export function useComicMode({
   );
   const [folderMode, setFolderMode] = useState<FolderMode>(null);
   const [folderPassword, setFolderPassword] = useState<string | null>(null);
+  const [folderEncryptionMethod, setFolderEncryptionMethod] =
+    useState<EncryptionMethod | null>(null);
   const [images, setImages] = useState<ReaderImage[]>([]);
   const [isAutoOpening, setIsAutoOpening] = useState(
     initialChapterId !== null || initialPage >= 0,
@@ -154,6 +157,7 @@ export function useComicMode({
       replaceChapters([]);
       setFolderDetails(null);
       setFolderMode(null);
+      setFolderEncryptionMethod(null);
       setFolderPassword(null);
       setIsAutoOpening(false);
       setIsFolderScanComplete(false);
@@ -208,6 +212,7 @@ export function useComicMode({
       replaceChapters([]);
       setFolderDetails(null);
       setFolderMode(resource.kind === 'pdf' ? 'images' : null);
+      setFolderEncryptionMethod(null);
       setFolderPassword(null);
       setIsFolderScanComplete(false);
       setIsModePickerOpen(false);
@@ -326,6 +331,16 @@ export function useComicMode({
     [activeFolderId, replaceChapters, replaceImages, resetParentChapterState],
   );
 
+  const applyPasswordMetadata = useCallback((page: FolderPageResult) => {
+    if (page.password !== null) {
+      setFolderPassword((current) => current ?? page.password);
+    }
+
+    if (page.encryptionMethod !== null) {
+      setFolderEncryptionMethod((current) => current ?? page.encryptionMethod);
+    }
+  }, []);
+
   useEffect(() => {
     if (!activeResource) {
       return;
@@ -384,9 +399,7 @@ export function useComicMode({
       loadFolderDetails(resourceId);
 
       while (!isCancelled && activeFetchIdRef.current === fetchId) {
-        if (page.password !== null) {
-          setFolderPassword((current) => current ?? page.password);
-        }
+        applyPasswordMetadata(page);
 
         const mergedImages = mergeImages(imagesRef.current, page.images);
 
@@ -459,9 +472,7 @@ export function useComicMode({
       loadFolderDetails(resourceId);
 
       while (!isCancelled && activeFetchIdRef.current === fetchId) {
-        if (page.password !== null) {
-          setFolderPassword((current) => current ?? page.password);
-        }
+        applyPasswordMetadata(page);
 
         const mergedChapters = mergeChapters(
           chaptersRef.current,
@@ -539,9 +550,7 @@ export function useComicMode({
           return;
         }
 
-        if (page.password !== null) {
-          setFolderPassword((current) => current ?? page.password);
-        }
+        applyPasswordMetadata(page);
 
         if (folderMode === null) {
           if (page.isEmpty) {
@@ -631,6 +640,7 @@ export function useComicMode({
     };
   }, [
     activeResource,
+    applyPasswordMetadata,
     folderMode,
     isProviderLoading,
     isProviderReady,
@@ -695,6 +705,7 @@ export function useComicMode({
     chapters,
     closeComicMode,
     folderDetails,
+    folderEncryptionMethod,
     folderMode,
     folderPassword,
     goToAdjacentChapter,

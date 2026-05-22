@@ -4,6 +4,7 @@ export type {
   Chapter,
   DriveResource,
   DriveProvider,
+  EncryptionMethod,
   FolderDetails,
   FolderMode,
   FolderPageResult,
