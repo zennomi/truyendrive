@@ -1,5 +1,5 @@
 /**
- * Inline Web Worker for XOR decryption.
+ * Inline Web Worker for image decryption.
  *
  * The worker source is embedded as a string and loaded via Blob URL so it
  * works inside userscript environments where file-based workers aren't
@@ -14,13 +14,22 @@
  * Message protocol
  * ────────────────
  * Main → Worker:
- *   { jobId: number, buffer: ArrayBuffer, password: string }
+ *   {
+ *     jobId: number,
+ *     buffer: ArrayBuffer,
+ *     password: string,
+ *     method: 'scanline' | 'noise',
+ *     width: number,
+ *     height: number
+ *   }
  *   `buffer` is transferred (zero-copy).
  *
  * Worker → Main:
  *   { jobId: number, buffer: ArrayBuffer }
  *   `buffer` is transferred back (zero-copy).
  */
+
+import type { EncryptionMethod } from '../providers/types';
 
 const WORKER_SOURCE = /* js */ `
 "use strict";
@@ -57,11 +66,7 @@ function mulberry32(seed) {
   };
 }
 
-self.onmessage = function (e) {
-  var jobId = e.data.jobId;
-  var buffer = e.data.buffer;
-  var password = e.data.password;
-
+function decryptNoise(buffer, password) {
   var data = new Uint8Array(buffer);
   var len = data.length;
   var rand = mulberry32(cyrb128(password));
@@ -73,7 +78,49 @@ self.onmessage = function (e) {
     // data[i + 3] is alpha — skip
   }
 
-  self.postMessage({ jobId: jobId, buffer: buffer }, [buffer]);
+  return buffer;
+}
+
+function decryptScanline(buffer, password, width, height) {
+  var channels = 4;
+  var rowByteLength = width * channels;
+  var data = new Uint8Array(buffer);
+  var output = new Uint8Array(data.length);
+  var rand = mulberry32(cyrb128(password + ":" + width + "x" + height + ":" + channels + ":scanline"));
+
+  for (var row = 0; row < height; row++) {
+    var offset = width === 0 ? 0 : Math.floor(rand() * width);
+    var reverse = rand() >= 0.5;
+
+    for (var destinationColumn = 0; destinationColumn < width; destinationColumn++) {
+      var transformedColumn = reverse ? width - 1 - destinationColumn : destinationColumn;
+      var sourceColumn = (transformedColumn + offset) % width;
+      var srcStart = row * rowByteLength + sourceColumn * channels;
+      var destStart = row * rowByteLength + destinationColumn * channels;
+
+      output[destStart] = data[srcStart];
+      output[destStart + 1] = data[srcStart + 1];
+      output[destStart + 2] = data[srcStart + 2];
+      output[destStart + 3] = data[srcStart + 3];
+    }
+  }
+
+  return output.buffer;
+}
+
+self.onmessage = function (e) {
+  var jobId = e.data.jobId;
+  var buffer = e.data.buffer;
+  var password = e.data.password;
+  var method = e.data.method || "noise";
+  var width = e.data.width;
+  var height = e.data.height;
+
+  var decryptedBuffer = method === "scanline"
+    ? decryptScanline(buffer, password, width, height)
+    : decryptNoise(buffer, password);
+
+  self.postMessage({ jobId: jobId, buffer: decryptedBuffer }, [decryptedBuffer]);
 };
 `;
 
@@ -147,15 +194,18 @@ interface WorkerResponse {
 let nextJobId = 0;
 
 /**
- * Run the XOR decryption loop inside a Web Worker.
+ * Run image decryption inside a Web Worker.
  *
  * `pixelBuffer` is an `ArrayBuffer` obtained from `ImageData.data.buffer`.
  * Ownership is **transferred** to the worker (zero-copy) and returned back
  * once decryption is complete — the caller must not access it in between.
  */
-export async function xorDecryptInWorker(
+export async function decryptInWorker(
   pixelBuffer: ArrayBuffer,
   password: string,
+  method: EncryptionMethod,
+  width: number,
+  height: number,
   signal?: AbortSignal,
 ): Promise<ArrayBuffer> {
   const pw = await acquireWorker();
@@ -203,8 +253,17 @@ export async function xorDecryptInWorker(
     signal?.addEventListener('abort', onAbort, { once: true });
 
     // Transfer the buffer (zero-copy)
-    pw.worker.postMessage({ jobId, buffer: pixelBuffer, password }, [
-      pixelBuffer,
-    ]);
+    pw.worker.postMessage(
+      { jobId, buffer: pixelBuffer, password, method, width, height },
+      [pixelBuffer],
+    );
   });
+}
+
+export function xorDecryptInWorker(
+  pixelBuffer: ArrayBuffer,
+  password: string,
+  signal?: AbortSignal,
+): Promise<ArrayBuffer> {
+  return decryptInWorker(pixelBuffer, password, 'noise', 0, 0, signal);
 }

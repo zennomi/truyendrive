@@ -12,6 +12,13 @@ _Ví dụ trên là sau khi decode, bạn có thể thấy rằng các hình ả
 
 Có 2 phương pháp để thực hiện việc này tùy thuộc vào nhu cầu của bạn:
 
+## Mục lục
+
+- [Hướng dẫn mã hóa (Encode) hình ảnh](#hướng-dẫn-mã-hóa-encode-hình-ảnh)
+  - [Mục lục](#mục-lục)
+  - [1. Phương pháp đơn giản (Dành cho người dùng phổ thông)](#1-phương-pháp-đơn-giản-dành-cho-người-dùng-phổ-thông)
+  - [2. Phương pháp dành cho nhà phát triển (Dành cho uploader chuyên nghiệp)](#2-phương-pháp-dành-cho-nhà-phát-triển-dành-cho-uploader-chuyên-nghiệp)
+
 ## 1. Phương pháp đơn giản (Dành cho người dùng phổ thông)
 
 Sử dụng công cụ mã hóa trực tuyến trên trình duyệt (Web Encoder). Phù hợp khi bạn cần xử lý số lượng ít hoặc không quen sử dụng dòng lệnh.

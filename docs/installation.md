@@ -2,6 +2,12 @@
 
 Để sử dụng TruyenDrive, bạn cần cài đặt một ứng dụng hoặc tiện ích mở rộng giúp chạy userscript trên trình duyệt. Dưới đây là hướng dẫn chi tiết cho từng nền tảng (máy tính/iphone/thiết bị android)
 
+## Mục lục
+
+- [1. Dành cho Desktop (Máy tính)](#1-dành-cho-desktop-máy-tính)
+- [2. Dành cho thiết bị iOS (iPhone / iPad)](#2-dành-cho-thiết-bị-ios-iphone-ipad)
+- [3. Dành cho thiết bị Android](#3-dành-cho-thiết-bị-android)
+
 ## 1. Dành cho Desktop (Máy tính)
 
 Phổ biến nhất trên Desktop là sử dụng tiện ích **Tampermonkey**.
@@ -86,7 +92,17 @@ Tải và cài đặt ứng dụng **Userscripts** từ App Store. [Link tại �
 
 Trên Android, bạn không thể cài đặt extension trực tiếp lên Google Chrome, vì vậy có 2 phương pháp phổ biến:
 
-### Phương pháp 1: Sử dụng Kiwi Browser (Khuyên dùng)
+### Phương pháp 1: Sử dụng Firefox cho Android (Khuyên dùng)
+
+Firefox trên Android hỗ trợ một số extension được chọn lọc, trong đó có Tampermonkey.
+
+1. Tải và cài đặt [**Firefox** từ Google Play Store](https://play.google.com/store/apps/details?id=org.mozilla.firefox).
+
+2. Truy cập [**Tampermonkey**](https://addons.mozilla.org/vi/android/addon/tampermonkey/) trên Firefox để cài đặt Tampermonkey.
+
+3. Truy cập vào link script: [https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js](https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js) để tiến hành cài đặt.
+
+### Phương pháp 2: Sử dụng Kiwi Browser
 
 Kiwi Browser là một trình duyệt dựa trên Chromium có hỗ trợ cài đặt extension giống hệt trên máy tính.
 
@@ -94,13 +110,3 @@ Kiwi Browser là một trình duyệt dựa trên Chromium có hỗ trợ cài �
 2. Mở Kiwi Browser, truy cập Chrome Web Store và cài đặt extension **Tampermonkey** tương tự như trên Desktop.
 3. Nhấp vào link tải script: [https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js](https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js)
 4. Xác nhận cài đặt trong Tampermonkey.
-
-### Phương pháp 2: Sử dụng Firefox cho Android
-
-Firefox trên Android hỗ trợ một số extension được chọn lọc, trong đó có Tampermonkey.
-
-1. Tải và cài đặt **Firefox** từ Google Play Store.
-
-2. Mở menu của Firefox (dấu 3 chấm), chọn **Tiện ích mở rộng** (Add-ons).
-3. Tìm và cài đặt **Tampermonkey**.
-4. Truy cập vào link script: [https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js](https://zennomi.github.io/truyendrive/truyendrive-userscript.user.js) để tiến hành cài đặt.

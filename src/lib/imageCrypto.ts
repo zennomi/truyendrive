@@ -1,3 +1,5 @@
+import type { EncryptionMethod } from '../providers/types';
+
 export function cyrb128(str: string): number {
   let h1 = 1779033703;
   let h2 = 3144134277;
@@ -84,6 +86,7 @@ async function canvasToBlob(
 export async function decryptImageBuffer(
   imageUrl: string,
   password: string,
+  method: EncryptionMethod,
   signal?: AbortSignal,
 ): Promise<Blob> {
   const blob = await fetchImageBlob(imageUrl, signal);
@@ -150,19 +153,29 @@ export async function decryptImageBuffer(
 
     const imageData = ctx.getImageData(0, 0, width, height);
 
-    // ── XOR decryption ──────────────────────────────────────────────────
     let decryptedBuffer: ArrayBuffer;
 
     if (workerModule) {
       // Worker path — buffer is transferred (zero-copy) and returned
-      decryptedBuffer = await workerModule.xorDecryptInWorker(
+      decryptedBuffer = await workerModule.decryptInWorker(
         imageData.data.buffer,
         password,
+        method,
+        width,
+        height,
         signal,
       );
     } else {
       // Main-thread fallback
-      decryptedBuffer = xorDecryptMainThread(imageData.data.buffer, password);
+      decryptedBuffer =
+        method === 'scanline'
+          ? scanlineDecryptMainThread(
+              imageData.data.buffer,
+              password,
+              width,
+              height,
+            )
+          : xorDecryptMainThread(imageData.data.buffer, password);
     }
 
     // Put the decrypted pixels back onto the canvas
@@ -204,4 +217,44 @@ function xorDecryptMainThread(
   }
 
   return buffer;
+}
+
+function scanlineDecryptMainThread(
+  buffer: ArrayBuffer,
+  password: string,
+  width: number,
+  height: number,
+): ArrayBuffer {
+  const channels = 4;
+  const rowByteLength = width * channels;
+  const data = new Uint8Array(buffer);
+  const output = new Uint8Array(data.length);
+  const rand = mulberry32(
+    cyrb128(`${password}:${width}x${height}:${channels}:scanline`),
+  );
+
+  for (let row = 0; row < height; row += 1) {
+    const offset = width === 0 ? 0 : Math.floor(rand() * width);
+    const reverse = rand() >= 0.5;
+
+    for (
+      let destinationColumn = 0;
+      destinationColumn < width;
+      destinationColumn += 1
+    ) {
+      const transformedColumn = reverse
+        ? width - 1 - destinationColumn
+        : destinationColumn;
+      const sourceColumn = (transformedColumn + offset) % width;
+      const srcStart = row * rowByteLength + sourceColumn * channels;
+      const destStart = row * rowByteLength + destinationColumn * channels;
+
+      output[destStart] = data[srcStart];
+      output[destStart + 1] = data[srcStart + 1];
+      output[destStart + 2] = data[srcStart + 2];
+      output[destStart + 3] = data[srcStart + 3];
+    }
+  }
+
+  return output.buffer;
 }

@@ -6,7 +6,7 @@ import {
   getMaxGroupDistance,
   type ReaderGroup,
 } from '../lib/readerUtils';
-import type { ReaderImage } from '../providers/types';
+import type { EncryptionMethod, ReaderImage } from '../providers/types';
 
 function revokeBlobUrls(blobUrls: Map<string, string>) {
   blobUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -28,6 +28,7 @@ function retainImageBlobUrls(
 export function useImageDecryptor(
   images: ReaderImage[],
   password: string | null,
+  encryptionMethod: EncryptionMethod,
   displayGroups: ReaderGroup[],
   activeGroupIndex: number,
   initialGroupIndex: number,
@@ -57,7 +58,7 @@ export function useImageDecryptor(
     pendingIdsRef.current.clear();
     revokeBlobUrls(blobUrlsRef.current);
     setDecryptedSrcs(new Map());
-  }, [password]);
+  }, [encryptionMethod, password]);
 
   useEffect(() => {
     return () => {
@@ -139,7 +140,11 @@ export function useImageDecryptor(
             continue;
           }
 
-          const blob = await decryptImageBuffer(buildFetchUrl(image), password);
+          const blob = await decryptImageBuffer(
+            buildFetchUrl(image),
+            password,
+            encryptionMethod,
+          );
 
           if (decryptGenerationRef.current !== decryptGeneration) {
             return;
@@ -164,6 +169,7 @@ export function useImageDecryptor(
   }, [
     anchorGroupIndex,
     displayGroups,
+    encryptionMethod,
     imageById,
     buildFetchUrl,
     password,

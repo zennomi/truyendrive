@@ -1799,6 +1799,237 @@ _:-webkit-full-screen:not(:root:root),
   color: var(--accentCol);
 }
 
+.Loda_Password {
+  min-width: min(34rem, calc(100vw - 2rem));
+  max-width: 34rem;
+}
+
+.Loda_Password .password-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  padding: 0 1rem 1rem;
+}
+
+.Loda_Password .password-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.Loda_Password .password-field span,
+.Loda_Password .password-methods legend {
+  color: var(--textCol);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.Loda_Password .password-field input {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--borderColor);
+  border-radius: 4px;
+  box-shadow: 0px 4px 8px var(--blackLight);
+  color: var(--textCol);
+  font-family: 'Open Sans';
+  font-size: 1rem;
+  height: 2.8rem;
+  padding: 0 0.85rem;
+}
+
+.Loda_Password .password-methods {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.Loda_Password .password-method-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0.6rem;
+}
+
+.Loda_Password .password-method-card {
+  background: var(--sidebarColDark);
+  border: 1px solid var(--borderColor);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 11rem;
+  padding: 0.7rem;
+  position: relative;
+}
+
+.Loda_Password .password-method-card[data-selected='true'] {
+  border-color: var(--accentCol);
+  box-shadow: 0 0 0 1px var(--accentCol);
+}
+
+.Loda_Password .password-method-card input {
+  height: 1rem;
+  margin: 0;
+  position: absolute;
+  right: 0.7rem;
+  top: 0.7rem;
+  width: 1rem;
+}
+
+.Loda_Password .password-method-illustration {
+  align-items: center;
+  background: var(--sidebarColFocus);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  display: flex;
+  min-height: 5.2rem;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.Loda_Password .password-method-card:hover .password-method-illustration {
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.Loda_Password .password-method-card[data-selected='true'] .password-method-illustration {
+  border-color: var(--accentCol);
+}
+
+/* Base illustration SVGs scaling */
+.Loda_Password .password-method-illustration svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+/* Lock symbols premium styling */
+.Loda_Password .password-method-illustration .center-symbol {
+  transform-origin: center;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.Loda_Password .password-method-card:hover .center-symbol {
+  transform: translate(80px, 40px) scale(1.1);
+}
+
+.Loda_Password .password-method-card:hover .center-symbol circle:first-of-type {
+  opacity: 0.3;
+}
+
+/* --- Scanline Glitch Animations --- */
+.Loda_Password .password-method-illustration .scramble-slices rect {
+  transition: transform 0.2s ease;
+}
+
+/* Custom horizontal jitter movements for scanline slices */
+@keyframes jitter-s1 {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-3px); }
+  40% { transform: translateX(1px); }
+  60% { transform: translateX(-1px); }
+  80% { transform: translateX(2px); }
+}
+
+@keyframes jitter-s2 {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(2px); }
+  35% { transform: translateX(-2px); }
+  55% { transform: translateX(4px); }
+  75% { transform: translateX(-1px); }
+}
+
+@keyframes jitter-s3 {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(3px); }
+  75% { transform: translateX(-2px); }
+}
+
+@keyframes jitter-s4 {
+  0%, 100% { transform: translateX(0); }
+  10% { transform: translateX(4px); }
+  30% { transform: translateX(-1px); }
+  50% { transform: translateX(2px); }
+  70% { transform: translateX(-3px); }
+  90% { transform: translateX(1px); }
+}
+
+@keyframes jitter-s5 {
+  0%, 100% { transform: translateX(0); }
+  30% { transform: translateX(-2px); }
+  60% { transform: translateX(2px); }
+  90% { transform: translateX(-4px); }
+}
+
+/* Hook up animations on hover or when selected, but keep them extremely subtle otherwise */
+.Loda_Password .scramble-slice-1 { animation: jitter-s1 2.5s infinite steps(2); }
+.Loda_Password .scramble-slice-2 { animation: jitter-s2 3.1s infinite steps(1); }
+.Loda_Password .scramble-slice-3 { animation: jitter-s3 1.9s infinite steps(2); }
+.Loda_Password .scramble-slice-4 { animation: jitter-s4 2.7s infinite steps(1); }
+.Loda_Password .scramble-slice-5 { animation: jitter-s5 3.5s infinite steps(2); }
+
+/* Boost glitched scanline movement on hover/selected for an interactive feel */
+.Loda_Password .password-method-card:hover .scramble-slice-1 { animation-duration: 0.8s; }
+.Loda_Password .password-method-card:hover .scramble-slice-2 { animation-duration: 0.6s; }
+.Loda_Password .password-method-card:hover .scramble-slice-3 { animation-duration: 0.7s; }
+.Loda_Password .password-method-card:hover .scramble-slice-4 { animation-duration: 0.5s; }
+.Loda_Password .password-method-card:hover .scramble-slice-5 { animation-duration: 0.9s; }
+
+.Loda_Password .password-method-title {
+  color: var(--textCol);
+  font-size: 1rem;
+  font-weight: 700;
+  padding-right: 1.5rem;
+}
+
+.Loda_Password .password-method-description {
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.Loda_Password .password-actions {
+  align-items: center;
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: auto 1fr auto auto;
+}
+
+.Loda_Password .password-actions .ResetButton {
+  margin-top: 0;
+  min-height: 2.15rem;
+}
+
+.Loda_Password .password-confirm {
+  background: var(--accentCol);
+  color: #111;
+}
+
+.Loda_Password .password-field input:focus-visible,
+.Loda_Password .password-method-card:focus-within,
+.Loda_Password .ResetButton:focus-visible {
+  outline: 2px solid var(--accentCol);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .Loda_Password .password-method-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .Loda_Password .password-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .Loda_Password .password-actions span {
+    display: none;
+  }
+}
+
 .Loda_Settings {
   margin-right: auto;
   margin-left: 8rem;

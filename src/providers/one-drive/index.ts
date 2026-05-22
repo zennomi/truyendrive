@@ -1,6 +1,7 @@
 import type {
   Chapter,
   DriveProvider,
+  EncryptionMethod,
   FolderDetails,
   FolderPageResult,
   ReaderImage,
@@ -58,7 +59,8 @@ type FolderParts = {
 
 const IMAGE_EXTENSIONS = new Set(['avif', 'gif', 'jpeg', 'jpg', 'png', 'webp']);
 const ONEDRIVE_ORIGIN = 'https://onedrive.live.com';
-const PASSWORD_FILE_PATTERN = /^\.password\.(.+)\.truyendrive$/;
+const PASSWORD_FILE_PATTERN =
+  /^\.password\.(.+?)(?:\.(scanline|noise))?\.truyendrive$/;
 const FIRST_PAGE_RENDER_OPTIONS = 1496871;
 const PAGED_RENDER_OPTIONS = 1232931;
 
@@ -227,6 +229,7 @@ function toFolderPageResult(
   let hasImages = false;
   let hasOther = false;
   let password: string | null = null;
+  let encryptionMethod: EncryptionMethod | null = null;
 
   rows.forEach((row) => {
     const fileName = getFileName(row);
@@ -234,6 +237,8 @@ function toFolderPageResult(
 
     if (passwordMatch) {
       password ??= passwordMatch[1];
+      encryptionMethod ??=
+        (passwordMatch[2] as EncryptionMethod | undefined) ?? null;
       return;
     }
 
@@ -270,6 +275,7 @@ function toFolderPageResult(
 
   return {
     chapters,
+    encryptionMethod,
     images,
     isEmpty,
     isMixed: !isEmpty && ((hasChapters && hasImages) || hasOther),

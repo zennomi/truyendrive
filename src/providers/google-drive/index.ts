@@ -10,6 +10,7 @@ import type {
   Chapter,
   DriveResource,
   DriveProvider,
+  EncryptionMethod,
   FolderDetails,
   FolderPageResult,
   ReaderImage,
@@ -28,7 +29,8 @@ const FILE_ID_PATTERN = /\/file\/d\/([^/?#]+)/;
 const DRIVE_FOLDER_MIME = 'application/vnd.google-apps.folder';
 const PDF_MIME = 'application/pdf';
 const SHORTCUT_MIME = 'application/vnd.google-apps.shortcut';
-const PASSWORD_FILE_PATTERN = /^\.password\.(.+)\.truyendrive$/;
+const PASSWORD_FILE_PATTERN =
+  /^\.password\.(.+?)(?:\.(scanline|noise))?\.truyendrive$/;
 
 function findShortcutDetails(item: DriveFolderItem): any[] | null {
   for (let index = 0; index < item.length; index += 1) {
@@ -76,16 +78,22 @@ function resolveShortcuts(items: DriveFolderItem[]) {
   return items.map(resolveShortcutItem);
 }
 
-function extractPasswordFromItems(items: DriveFolderItem[]): string | null {
+function extractPasswordFromItems(items: DriveFolderItem[]): {
+  password: string | null;
+  method: EncryptionMethod | null;
+} {
   for (const item of items) {
     const name = typeof item[2] === 'string' ? item[2] : '';
     const match = name.match(PASSWORD_FILE_PATTERN);
     if (match) {
-      return match[1];
+      return {
+        password: match[1] ?? null,
+        method: (match[2] as EncryptionMethod | undefined) ?? null,
+      };
     }
   }
 
-  return null;
+  return { password: null, method: null };
 }
 
 function isPasswordFileItem(item: DriveFolderItem) {
@@ -178,13 +186,15 @@ function classifyItems(items: DriveFolderItem[]): FolderDetectionResult {
 
 function toFolderPageResult(items: DriveFolderItem[]): FolderPageResult {
   const classification = classifyItems(items);
+  const passwordFile = extractPasswordFromItems(items);
 
   return {
     chapters: extractChapters(items),
+    encryptionMethod: passwordFile.method,
     images: extractImages(items),
     isEmpty: classification === 'empty',
     isMixed: classification === 'mixed',
-    password: extractPasswordFromItems(items),
+    password: passwordFile.password,
   };
 }
 

@@ -8,6 +8,17 @@ TruyenDrive là một userscript giúp biến các thư mục trên Google Drive
 
 Thay vì phải mở từng ảnh một cách thủ công trên Google Drive, TruyenDrive sẽ tự động nhận diện các thư mục chứa ảnh hoặc các thư mục con (các chương truyện), sau đó hiển thị chúng dưới dạng một trình đọc truyện với đầy đủ các tính năng như chuyển trang, thiết lập hiển thị.
 
+## Mục lục
+
+- [TruyenDrive](#truyendrive)
+  - [Mục lục](#mục-lục)
+  - [Tính năng chính](#tính-năng-chính)
+  - [Hướng dẫn cài đặt](#hướng-dẫn-cài-đặt)
+  - [Cách sử dụng](#cách-sử-dụng)
+    - [Người đọc](#người-đọc)
+    - [Người lưu trữ truyện](#người-lưu-trữ-truyện)
+  - [Hướng dẫn mã hóa hình ảnh (Dành cho Người lưu trữ truyện)](#hướng-dẫn-mã-hóa-hình-ảnh-dành-cho-người-lưu-trữ-truyện)
+
 ## Tính năng chính
 
 - **Giao diện đọc truyện tối ưu**: Hỗ trợ đọc từ trái sang phải (LTR), phải sang trái (RTL) hoặc cuộn dọc (TTB).

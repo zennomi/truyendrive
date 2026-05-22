@@ -29,10 +29,13 @@ export type Chapter = {
 
 export type FolderMode = 'chapters' | 'images' | null;
 
+export type EncryptionMethod = 'scanline' | 'noise';
+
 export interface FolderPageResult {
   images: ReaderImage[];
   chapters: Chapter[];
   password: string | null;
+  encryptionMethod: EncryptionMethod | null;
   isMixed: boolean;
   isEmpty: boolean;
 }
