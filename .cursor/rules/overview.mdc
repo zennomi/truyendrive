@@ -53,7 +53,7 @@ The app injects a comic-reader UI into live cloud-storage pages instead of runni
 - `src/App.tsx` is the orchestration layer. It wires together provider access, persisted settings, folder/chapter loading, reader session/history state, scroll/navigation state, image decryption, preload, and overlay visibility.
 - `src/hooks/useComicMode.ts` is the main content-loading state machine. It asks the current provider for paginated folder data, classifies folders as `chapters`, `images`, `mixed`, or `empty`, merges paginated results, and manages the transitions between launcher, mode picker, chapter list, and reader.
 - Mixed folders are handled in two phases: the first fetched page is cached, the user chooses between chapter mode and image mode, and the chosen flow resumes without refetching that first page.
-- Reader deep links are restored from `truyendrive-chap` and `truyendrive-page` URL state during auto-open.
+- Reader deep links are restored from `td-chap` and `td-page` URL state during auto-open.
 - Google Drive PDFs are treated as image-mode resources from the start rather than going through folder classification.
 - Chapter-to-chapter transitions are coordinated across `App.tsx`, `useComicMode.ts`, `ReaderSidebar.tsx`, and `ReaderArea.tsx` rather than living in one isolated component.
 
@@ -63,7 +63,7 @@ The app injects a comic-reader UI into live cloud-storage pages instead of runni
 - `src/hooks/useReaderControls.ts` splits behavior between page/group navigation and top-to-bottom scroll navigation.
 - `src/hooks/useReaderHistory.ts` synchronizes browser history and document title while the reader is open.
 - `src/hooks/useReaderSession.ts` snapshots the pre-reader URL/title and restores them when the reader closes.
-- Reader state is encoded in URL query params, primarily `truyendrive-chap` and `truyendrive-page`, with hash parsing kept for older links.
+- Reader state is encoded in URL query params, primarily `td-chap` and `td-page`, with hash parsing kept for older links.
 
 ### Settings, preload, and password-protected images
 

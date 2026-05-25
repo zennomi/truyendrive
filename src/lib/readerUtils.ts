@@ -33,10 +33,10 @@ export type PointerGestureState = {
   wrapper: HTMLDivElement | null;
 };
 
-export const READER_HISTORY_HASH = 'truyendrive-page';
-export const READER_STATE_HASH_PREFIX = 'truyendrive-chap';
-export const READER_PAGE_SEARCH_PARAM = 'truyendrive-page';
-export const READER_CHAPTER_SEARCH_PARAM = 'truyendrive-chap';
+export const READER_HISTORY_HASH = 'td-page';
+export const READER_STATE_HASH_PREFIX = 'td-chap';
+export const READER_PAGE_SEARCH_PARAM = 'td-page';
+export const READER_CHAPTER_SEARCH_PARAM = 'td-chap';
 
 export function buildPageGroups(
   images: ReaderImage[],

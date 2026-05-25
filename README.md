@@ -77,9 +77,9 @@ Vui lòng xem chi tiết tại: [Hướng dẫn cài đặt TruyenDrive](./docs/
 
 TruyenDrive sẽ tự động nhận diện các thư mục con và hiển thị chúng dưới dạng các chương truyện, sắp xếp từ A-Z, support tất cả các format ảnh: JPG, PNG, WEBP và thậm chí PSD.
 
-[Ví dụ 1 link chương truyện](https://drive.google.com/drive/u/2/folders/1lzc-aJ0sEl5J_a4xCsSyLpRn5ABQjxRm?truyendrive-chap=15PTiht-fQjeKeP9RQ_ggokYna1fVoe1o&truyendrive-page=1m).
+[Ví dụ 1 link chương truyện](https://drive.google.com/drive/u/2/folders/1lzc-aJ0sEl5J_a4xCsSyLpRn5ABQjxRm?td-chap=15PTiht-fQjeKeP9RQ_ggokYna1fVoe1o&td-page=1m).
 
-Để chia sẻ một chương truyện là thư mục con của một truyện, chia sẻ link với format sau: `https://drive.google.com/drive/folders/[manga-folder-id]?truyendrive-chap=[chapter-folder-id]&truyendrive-page=1`
+Để chia sẻ một chương truyện là thư mục con của một truyện, chia sẻ link với format sau: `https://drive.google.com/drive/folders/[manga-folder-id]?td-chap=[chapter-folder-id]&td-page=1`
 
 Hoặc copy link trực tiếp tại giao diện đọc truyện.
 
