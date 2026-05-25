@@ -35,7 +35,7 @@ const ScanlineIllustration = () => {
           <stop offset="100%" stopColor="#00ffff" stopOpacity="0.15" />
         </linearGradient>
       </defs>
-      
+
       {/* Background card */}
       <rect width="100%" height="100%" fill="url(#scanlineBgGrad)" />
 
@@ -56,39 +56,148 @@ const ScanlineIllustration = () => {
       {/* Comic Panels layout inside, which gets scrambled */}
       <g className="comic-panels-base">
         {/* Left Panel */}
-        <rect x="15" y="12" width="60" height="56" fill="url(#panelGrad)" stroke="rgba(255, 255, 255, 0.2)" strokeWidth="1" rx="2" />
+        <rect
+          x="15"
+          y="12"
+          width="60"
+          height="56"
+          fill="url(#panelGrad)"
+          stroke="rgba(255, 255, 255, 0.2)"
+          strokeWidth="1"
+          rx="2"
+        />
         {/* Right Panel */}
-        <rect x="85" y="12" width="60" height="56" fill="url(#panelGrad)" stroke="rgba(255, 255, 255, 0.2)" strokeWidth="1" rx="2" />
-        
+        <rect
+          x="85"
+          y="12"
+          width="60"
+          height="56"
+          fill="url(#panelGrad)"
+          stroke="rgba(255, 255, 255, 0.2)"
+          strokeWidth="1"
+          rx="2"
+        />
+
         {/* Slices of scrambled graphics */}
         <g className="scramble-slices">
           {/* Slice 1 (Shifted Left) */}
-          <rect x="-8" y="16" width="180" height="4" fill="#00ffff" opacity="0.6" className="scramble-slice-1" />
-          <rect x="-4" y="16" width="170" height="4" fill="#ffffff" opacity="0.3" className="scramble-slice-1" />
-          
+          <rect
+            x="-8"
+            y="16"
+            width="180"
+            height="4"
+            fill="#00ffff"
+            opacity="0.6"
+            className="scramble-slice-1"
+          />
+          <rect
+            x="-4"
+            y="16"
+            width="170"
+            height="4"
+            fill="#ffffff"
+            opacity="0.3"
+            className="scramble-slice-1"
+          />
+
           {/* Slice 2 (Shifted Right) */}
-          <rect x="12" y="24" width="140" height="6" fill="#ff0055" opacity="0.6" className="scramble-slice-2" />
-          <rect x="8" y="24" width="145" height="6" fill="#ffffff" opacity="0.25" className="scramble-slice-2" />
-          
+          <rect
+            x="12"
+            y="24"
+            width="140"
+            height="6"
+            fill="#ff0055"
+            opacity="0.6"
+            className="scramble-slice-2"
+          />
+          <rect
+            x="8"
+            y="24"
+            width="145"
+            height="6"
+            fill="#ffffff"
+            opacity="0.25"
+            className="scramble-slice-2"
+          />
+
           {/* Slice 3 (Shifted Left) */}
-          <rect x="-12" y="34" width="180" height="5" fill="#00ffff" opacity="0.5" className="scramble-slice-3" />
-          <rect x="-7" y="34" width="170" height="5" fill="#ffffff" opacity="0.3" className="scramble-slice-3" />
-          
+          <rect
+            x="-12"
+            y="34"
+            width="180"
+            height="5"
+            fill="#00ffff"
+            opacity="0.5"
+            className="scramble-slice-3"
+          />
+          <rect
+            x="-7"
+            y="34"
+            width="170"
+            height="5"
+            fill="#ffffff"
+            opacity="0.3"
+            className="scramble-slice-3"
+          />
+
           {/* Slice 4 (Shifted Right) */}
-          <rect x="6" y="44" width="150" height="8" fill="#ff0055" opacity="0.7" className="scramble-slice-4" />
-          <rect x="10" y="44" width="140" height="8" fill="#ffffff" opacity="0.2" className="scramble-slice-4" />
+          <rect
+            x="6"
+            y="44"
+            width="150"
+            height="8"
+            fill="#ff0055"
+            opacity="0.7"
+            className="scramble-slice-4"
+          />
+          <rect
+            x="10"
+            y="44"
+            width="140"
+            height="8"
+            fill="#ffffff"
+            opacity="0.2"
+            className="scramble-slice-4"
+          />
 
           {/* Slice 5 (Shifted Left) */}
-          <rect x="-6" y="56" width="175" height="4" fill="#00ffff" opacity="0.6" className="scramble-slice-5" />
-          <rect x="-2" y="56" width="165" height="4" fill="#ffffff" opacity="0.35" className="scramble-slice-5" />
+          <rect
+            x="-6"
+            y="56"
+            width="175"
+            height="4"
+            fill="#00ffff"
+            opacity="0.6"
+            className="scramble-slice-5"
+          />
+          <rect
+            x="-2"
+            y="56"
+            width="165"
+            height="4"
+            fill="#ffffff"
+            opacity="0.35"
+            className="scramble-slice-5"
+          />
         </g>
 
         {/* Central visual lock symbol */}
         <g className="center-symbol" transform="translate(80, 40)">
           <circle r="14" fill="#ff0055" opacity="0.15" />
-          <circle r="10" fill="none" stroke="#ff0055" strokeWidth="1.5" opacity="0.8" />
+          <circle
+            r="10"
+            fill="none"
+            stroke="#ff0055"
+            strokeWidth="1.5"
+            opacity="0.8"
+          />
           <path d="M -6 -3 L 6 -3 L 6 3 L -6 3 Z" fill="#ffffff" />
-          <path d="M -3 -3 L -3 -7 C -3 -9, 3 -9, 3 -7 L 3 -3" fill="none" stroke="#ffffff" strokeWidth="1.5" />
+          <path
+            d="M -3 -3 L -3 -7 C -3 -9, 3 -9, 3 -7 L 3 -3"
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="1.5"
+          />
         </g>
       </g>
 
@@ -130,7 +239,7 @@ const NoiseIllustration = () => {
           <stop offset="0%" stopColor="#2a164d" />
           <stop offset="100%" stopColor="#0a0514" />
         </radialGradient>
-        
+
         {/* Turbulence generates multi-colored RGB pixel static noise */}
         <filter id="staticFilter" x="0" y="0" width="160" height="80">
           <feTurbulence
@@ -178,9 +287,20 @@ const NoiseIllustration = () => {
       {/* Central visual lock symbol */}
       <g className="center-symbol" transform="translate(80, 40)">
         <circle r="14" fill="#00e5ff" opacity="0.15" />
-        <circle r="10" fill="none" stroke="#00e5ff" strokeWidth="1.5" opacity="0.8" />
+        <circle
+          r="10"
+          fill="none"
+          stroke="#00e5ff"
+          strokeWidth="1.5"
+          opacity="0.8"
+        />
         <path d="M -6 -3 L 6 -3 L 6 3 L -6 3 Z" fill="#ffffff" />
-        <path d="M -3 -3 L -3 -7 C -3 -9, 3 -9, 3 -7 L 3 -3" fill="none" stroke="#ffffff" strokeWidth="1.5" />
+        <path
+          d="M -3 -3 L -3 -7 C -3 -9, 3 -9, 3 -7 L 3 -3"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="1.5"
+        />
       </g>
     </svg>
   );
@@ -295,7 +415,9 @@ export const PasswordDialog = memo(function PasswordDialog({
                     type="radio"
                     value={option.value}
                   />
-                  <span className={`password-method-illustration ${option.value}`}>
+                  <span
+                    className={`password-method-illustration ${option.value}`}
+                  >
                     {option.value === 'scanline' ? (
                       <ScanlineIllustration />
                     ) : (
